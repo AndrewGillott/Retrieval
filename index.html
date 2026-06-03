@@ -4,22 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Retrieval — AQA GCSE Science Quiz Builder</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a;padding:2rem}
-.app{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a}
+.page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.app{max-width:880px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem;padding:2rem 0}
 .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem}
 .slabel{font-size:12px;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
-select,input[type=text],input[type=number],input[type=search]{height:36px;font-size:14px;padding:0 10px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#1a1a1a;outline:none}
-input[type=search]{width:100%;margin-bottom:8px}
-.btn{height:36px;padding:0 14px;font-size:14px;border:1px solid #ccc;border-radius:8px;background:transparent;color:#1a1a1a;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+select,input[type=text],input[type=number],input[type=search],input[type=email],input[type=password]{height:36px;font-size:14px;padding:0 10px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#1a1a1a;outline:none;width:100%}
+input[type=search]{margin-bottom:8px}
+.btn{height:36px;padding:0 14px;font-size:14px;border:1px solid #ccc;border-radius:8px;background:transparent;color:#1a1a1a;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;width:auto}
 .btn:hover{background:#f0f0f0}
 .btn:active{transform:scale(.98)}
 .btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 .btn-primary:hover{opacity:.85;background:#1a1a1a}
+.btn-full{width:100%}
 .btn-sm{height:28px;padding:0 10px;font-size:12px}
 .btn-copy{background:#f0f7ff;color:#185FA5;border-color:#B5D4F4}
+.btn-danger{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1}
 .tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;background:#f0f0f0;border:1px solid #ddd;color:#1a1a1a}
 .tag.bio{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97}
 .tag.chem{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}
@@ -27,9 +31,9 @@ input[type=search]{width:100%;margin-bottom:8px}
 .tags-wrap{display:flex;flex-wrap:wrap;gap:6px;min-height:32px;align-items:center}
 .topic-panel{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:8px}
 .subj-tabs{display:flex;border-bottom:1px solid #e0e0e0;background:#f9f9f9}
-.subj-tab{padding:8px 16px;font-size:13px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent}
+.subj-tab{padding:8px 16px;font-size:13px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent;flex:1}
 .subj-tab.on{color:#1a1a1a;border-bottom-color:#1a1a1a;background:#fff}
-.topic-list{max-height:220px;overflow-y:auto;padding:6px}
+.topic-list{max-height:200px;overflow-y:auto;padding:6px}
 .topic-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:6px;font-size:13px;gap:8px}
 .topic-item:hover{background:#f5f5f5}
 .topic-item.added{opacity:.4}
@@ -54,86 +58,181 @@ input[type=search]{width:100%;margin-bottom:8px}
 .badge-low{background:#FCEBEB;color:#A32D2D}
 .badge-ok{background:#EAF3DE;color:#3B6D11}
 .badge-blue{background:#E6F1FB;color:#185FA5}
-.tab-row{display:flex;gap:0;border-bottom:1px solid #e0e0e0;margin-bottom:14px}
-.tab{padding:7px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#888;background:transparent;border-top:none;border-left:none;border-right:none}
+.badge-grey{background:#f0f0f0;color:#666}
+.tab-row{display:flex;gap:0;border-bottom:1px solid #e0e0e0;margin-bottom:14px;overflow-x:auto}
+.tab{padding:7px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#888;background:transparent;border-top:none;border-left:none;border-right:none;white-space:nowrap}
 .tab.on{color:#1a1a1a;border-bottom-color:#1a1a1a}
 .divider{border:none;border-top:1px solid #e0e0e0;margin:12px 0}
 .empty{font-size:13px;color:#888;padding:.5rem 0}
 .spinner{width:14px;height:14px;border:2px solid #ddd;border-top-color:#1a1a1a;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
 .err{font-size:13px;color:#A32D2D;padding:8px 10px;background:#FCEBEB;border-radius:8px;margin-top:8px}
-h1{font-size:20px;font-weight:500;margin-bottom:4px}
-.subtitle{font-size:13px;color:#888}
-.no-results{font-size:13px;color:#aaa;padding:12px 8px;text-align:center}
+.success{font-size:13px;color:#3B6D11;padding:8px 10px;background:#EAF3DE;border-radius:8px;margin-top:8px}
 .logo{font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#1a1a1a}
 .logo span{color:#4F46E5}
+.no-results{font-size:13px;color:#aaa;padding:12px 8px;text-align:center}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat-box{background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:12px;text-align:center}
+.stat-val{font-size:24px;font-weight:600;color:#1a1a1a}
+.stat-lbl{font-size:11px;color:#888;margin-top:2px}
+.spec-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.spec-bar-bg{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.spec-bar-fill{height:100%;border-radius:4px;background:#4F46E5}
+.spec-bar-fill.low{background:#A32D2D}
+.spec-bar-fill.mid{background:#854F0B}
+.spec-bar-fill.high{background:#3B6D11}
+.navbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:10}
+.nav-logo{font-size:18px;font-weight:700;letter-spacing:-0.5px}
+.nav-logo span{color:#4F46E5}
+.nav-user{font-size:13px;color:#888;display:flex;align-items:center;gap:12px}
+
+/* Auth screens */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f5;padding:2rem}
+.auth-box{background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:2rem;width:100%;max-width:400px}
+.auth-box h2{font-size:20px;font-weight:600;margin-bottom:4px}
+.auth-box p{font-size:13px;color:#888;margin-bottom:1.5rem}
+.form-group{margin-bottom:12px}
+.form-group label{font-size:12px;font-weight:500;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.auth-switch{font-size:13px;color:#888;text-align:center;margin-top:1rem}
+.auth-switch a{color:#4F46E5;cursor:pointer;text-decoration:none}
 </style>
 </head>
 <body>
-<div class="app">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div>
+
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-box">
+    <div style="margin-bottom:1.5rem">
       <div class="logo">Retri<span>eval</span></div>
-      <div class="subtitle">AQA GCSE Combined Science · Evidence-based retrieval practice</div>
+      <div style="font-size:13px;color:#888;margin-top:4px">AQA GCSE Science · Evidence-based retrieval practice</div>
+    </div>
+    <div id="login-form">
+      <h2>Sign in</h2>
+      <p>Welcome back. Enter your details below.</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@school.ac.uk">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="login()" style="margin-top:8px">Sign in</button>
+      <div id="login-err"></div>
+      <div class="auth-switch">Don't have an account? <a onclick="showSignup()">Sign up free</a></div>
+    </div>
+    <div id="signup-form" style="display:none">
+      <h2>Create account</h2>
+      <p>Free to get started. No credit card required.</p>
+      <div class="form-group">
+        <label>Full name</label>
+        <input type="text" id="signup-name" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label>School</label>
+        <input type="text" id="signup-school" placeholder="School name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="you@school.ac.uk">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signup-password" placeholder="Min 8 characters">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="signup()" style="margin-top:8px">Create account</button>
+      <div id="signup-err"></div>
+      <div class="auth-switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="main-app" style="display:none">
+  <div class="navbar">
+    <div class="nav-logo">Retri<span>eval</span></div>
+    <div class="nav-user">
+      <span id="nav-email"></span>
+      <button class="btn btn-sm" onclick="signOut()">Sign out</button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="tab-row">
-      <button class="tab on" id="tb-build" onclick="showTab('build')">Quiz builder</button>
-      <button class="tab" id="tb-history" onclick="showTab('history')">Class history</button>
-      <button class="tab" id="tb-review" onclick="showTab('review')">Needs review</button>
+  <div class="app">
+    <div class="card">
+      <div class="tab-row">
+        <button class="tab on" id="tb-build" onclick="showTab('build')">Quiz builder</button>
+        <button class="tab" id="tb-stats" onclick="showTab('stats')">Class stats</button>
+        <button class="tab" id="tb-review" onclick="showTab('review')">Needs review</button>
+        <button class="tab" id="tb-history" onclick="showTab('history')">History</button>
+      </div>
+
+      <!-- QUIZ BUILDER -->
+      <div id="pane-build">
+        <div class="slabel">Class</div>
+        <div class="row" style="margin-bottom:14px">
+          <select id="cls-sel" onchange="switchClass()" style="width:180px;flex:none"></select>
+          <input type="text" id="cls-new" placeholder="New class name…" style="width:150px;flex:none">
+          <button class="btn btn-sm" onclick="addClass()">+ Add</button>
+        </div>
+
+        <div class="slabel">Add spec points covered</div>
+        <div class="topic-panel">
+          <div class="subj-tabs">
+            <button class="subj-tab on" onclick="switchSubj('bio',this)">Biology</button>
+            <button class="subj-tab" onclick="switchSubj('chem',this)">Chemistry</button>
+            <button class="subj-tab" onclick="switchSubj('phys',this)">Physics</button>
+          </div>
+          <div style="padding:8px 8px 0">
+            <input type="search" id="topic-search" placeholder="Search spec points…" oninput="renderTopicList()">
+          </div>
+          <div class="topic-list" id="topic-list"></div>
+        </div>
+
+        <div class="slabel" style="margin-top:4px">Spec points added <span id="topics-count" style="font-weight:400;color:#aaa"></span></div>
+        <div class="tags-wrap" id="tags-wrap"><span class="empty">No spec points added yet</span></div>
+
+        <div class="divider"></div>
+        <div class="slabel">Quiz settings</div>
+        <div class="row" style="margin-bottom:14px;gap:14px">
+          <div><div style="font-size:12px;color:#666;margin-bottom:4px">Tier</div>
+            <select id="tier" style="width:130px;flex:none"><option>Foundation</option><option selected>Higher</option></select></div>
+          <div><div style="font-size:12px;color:#666;margin-bottom:4px">Total questions</div>
+            <input type="number" id="q-total" value="5" min="1" max="20" style="width:74px;flex:none"></div>
+          <div><div style="font-size:12px;color:#666;margin-bottom:4px">Of which MC</div>
+            <input type="number" id="q-mc" value="2" min="0" max="10" style="width:74px;flex:none"></div>
+          <div><div style="font-size:12px;color:#666;margin-bottom:4px">Include flagged</div>
+            <select id="inc-flag" style="width:90px;flex:none"><option value="1">Yes</option><option value="0">No</option></select></div>
+        </div>
+
+        <button class="btn btn-primary" id="gen-btn" onclick="generate()">&#9654; Generate quiz</button>
+        <div id="gen-err"></div>
+      </div>
+
+      <!-- STATS -->
+      <div id="pane-stats" style="display:none">
+        <div id="stats-body"><span class="empty">Select a class to see stats.</span></div>
+      </div>
+
+      <!-- REVIEW -->
+      <div id="pane-review" style="display:none">
+        <div id="rev-body"><span class="empty">No questions flagged yet.</span></div>
+      </div>
+
+      <!-- HISTORY -->
+      <div id="pane-history" style="display:none">
+        <div id="hist-body"><span class="empty">Select a class to see history.</span></div>
+      </div>
     </div>
 
-    <div id="pane-build">
-      <div class="slabel">Class</div>
-      <div class="row" style="margin-bottom:14px">
-        <select id="cls-sel" onchange="switchClass()" style="width:170px"></select>
-        <input type="text" id="cls-new" placeholder="New class name…" style="width:150px">
-        <button class="btn btn-sm" onclick="addClass()">+ Add</button>
-      </div>
-
-      <div class="slabel">Add spec points covered</div>
-      <div class="topic-panel">
-        <div class="subj-tabs">
-          <button class="subj-tab on" onclick="switchSubj('bio',this)">Biology</button>
-          <button class="subj-tab" onclick="switchSubj('chem',this)">Chemistry</button>
-          <button class="subj-tab" onclick="switchSubj('phys',this)">Physics</button>
-        </div>
-        <div style="padding:8px 8px 0">
-          <input type="search" id="topic-search" placeholder="Search spec points…" oninput="renderTopicList()">
-        </div>
-        <div class="topic-list" id="topic-list"></div>
-      </div>
-
-      <div class="slabel" style="margin-top:4px">Spec points added <span id="topics-count" style="font-weight:400;color:#aaa"></span></div>
-      <div class="tags-wrap" id="tags-wrap"><span class="empty">No spec points added yet</span></div>
-
-      <div class="divider"></div>
-      <div class="slabel">Quiz settings</div>
-      <div class="row" style="margin-bottom:14px;gap:14px">
-        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Tier</div>
-          <select id="tier" style="width:130px"><option>Foundation</option><option selected>Higher</option></select></div>
-        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Total questions</div>
-          <input type="number" id="q-total" value="5" min="1" max="20" style="width:74px"></div>
-        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Of which MC</div>
-          <input type="number" id="q-mc" value="2" min="0" max="10" style="width:74px"></div>
-        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Include flagged</div>
-          <select id="inc-flag" style="width:90px"><option value="1">Yes</option><option value="0">No</option></select></div>
-      </div>
-
-      <button class="btn btn-primary" id="gen-btn" onclick="generate()">&#9654; Generate quiz</button>
-      <div id="gen-err"></div>
-    </div>
-
-    <div id="pane-history" style="display:none"><div id="hist-body"><span class="empty">Select a class to see history.</span></div></div>
-    <div id="pane-review" style="display:none"><div id="rev-body"><span class="empty">No questions flagged yet.</span></div></div>
+    <div id="quiz-out"></div>
   </div>
-
-  <div id="quiz-out"></div>
 </div>
 
 <script>
+// ── Supabase config ──────────────────────────────────────────────
+const SUPA_URL = 'https://paahfebuknbpgggffhxv.supabase.co';
+const SUPA_KEY = 'sb_publishable_BPrQiDZn2iJusAYB3uZFbA_vCwe66qT';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── Topic data ───────────────────────────────────────────────────
 const TOPICS = {
   bio: [
     {id:"4.1.1a",text:"4.1.1 — Describe the structure of eukaryotic cells (animal and plant)"},
@@ -245,7 +344,7 @@ const TOPICS = {
     {id:"5.3.4",text:"5.3.4 — Explain limiting reactants and calculate quantities [HT]"},
     {id:"5.3.5",text:"5.3.5 — Calculate percentage yield and atom economy"},
     {id:"5.4.1",text:"5.4.1 — Describe the reactivity series and predict reactions of metals"},
-    {id:"5.4.2a",text:"5.4.2 — Explain extraction of metals by reduction (carbon) and electrolysis"},
+    {id:"5.4.2a",text:"5.4.2 — Explain extraction of metals by reduction and electrolysis"},
     {id:"5.4.2b",text:"5.4.2 — Explain why aluminium is extracted by electrolysis"},
     {id:"5.4.3",text:"5.4.3 — Define oxidation and reduction in terms of oxygen and electrons (OIL RIG)"},
     {id:"5.4.4",text:"5.4.4 — Describe reactions of acids with metals, metal oxides, hydroxides and carbonates"},
@@ -256,7 +355,7 @@ const TOPICS = {
     {id:"5.5.2",text:"5.5.2 — Calculate energy change from bond energies [HT]"},
     {id:"5.5.3",text:"5.5.3 — Describe hydrogen fuel cells and compare to batteries"},
     {id:"5.6.1",text:"5.6.1 — Describe how to measure rate of reaction"},
-    {id:"5.6.2",text:"5.6.2 — Explain how temperature, concentration, surface area and catalysts affect reaction rate"},
+    {id:"5.6.2",text:"5.6.2 — Explain how temperature, concentration, surface area and catalysts affect rate"},
     {id:"5.6.3",text:"5.6.3 — Explain collision theory and activation energy"},
     {id:"5.6.4",text:"5.6.4 — Explain reversible reactions and dynamic equilibrium [HT]"},
     {id:"5.7.1",text:"5.7.1 — Describe crude oil as a mixture of hydrocarbons; define alkanes"},
@@ -340,192 +439,358 @@ const TOPICS = {
   ]
 };
 
-let curSubj='bio';
-let S={classes:{},cur:null,topics:[],quiz:[],lastSettings:{}};
-try{const r=localStorage.getItem('aqaqz_v6');if(r)S=JSON.parse(r);}catch(e){}
-function save(){try{localStorage.setItem('aqaqz_v6',JSON.stringify(S));}catch(e){}}
-function subjOf(id){return id.startsWith('4')?'bio':id.startsWith('5')?'chem':'phys';}
+// ── App state ────────────────────────────────────────────────────
+let user = null;
+let session = null;
+let classes = [];
+let curClass = null;
+let curSubj = 'bio';
+let quiz = [];
+let lastSettings = {};
 
-function boot(){renderTopicList();renderClsSel();renderTags();renderHist();renderRev();}
+// ── Auth ─────────────────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const {data, error} = await sb.auth.signInWithPassword({email, password: pw});
+  if (error) { showErr('login-err', error.message); return; }
+  session = data.session; user = data.user;
+  await bootApp();
+}
 
-function switchSubj(subj,el){
-  curSubj=subj;
-  document.querySelectorAll('.subj-tab').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('topic-search').value='';
+async function signup() {
+  const name = document.getElementById('signup-name').value.trim();
+  const school = document.getElementById('signup-school').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pw = document.getElementById('signup-password').value;
+  if (!name || !email || !pw) { showErr('signup-err', 'Please fill in all fields'); return; }
+  const {data, error} = await sb.auth.signUp({email, password: pw, options: {data: {full_name: name, school}}});
+  if (error) { showErr('signup-err', error.message); return; }
+  showErr('signup-err', 'Check your email to confirm your account, then sign in.', true);
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  user = null; session = null; classes = []; curClass = null;
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function showLogin() {
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('signup-form').style.display = 'none';
+}
+
+function showSignup() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('signup-form').style.display = 'block';
+}
+
+function showErr(id, msg, isSuccess) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="${isSuccess ? 'success' : 'err'}">${msg}</div>`;
+}
+
+// ── Boot ─────────────────────────────────────────────────────────
+async function bootApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('nav-email').textContent = user.email;
+  await loadClasses();
+  renderClsSel();
+  renderTopicList();
+  renderTags();
+}
+
+async function init() {
+  const {data: {session: s}} = await sb.auth.getSession();
+  if (s) { session = s; user = s.user; await bootApp(); }
+}
+
+// ── Classes ───────────────────────────────────────────────────────
+async function loadClasses() {
+  const {data, error} = await sb
+    .from('classes')
+    .select('*, taught_topics(*), flagged_questions(*), quiz_history(*)')
+    .eq('teacher_id', user.id)
+    .order('created_at', {ascending: true});
+  if (!error) classes = data || [];
+}
+
+function renderClsSel() {
+  const sel = document.getElementById('cls-sel');
+  sel.innerHTML = '<option value="">— select class —</option>' +
+    classes.map(c => `<option value="${c.id}"${curClass && curClass.id === c.id ? ' selected' : ''}>${c.name}</option>`).join('');
+}
+
+async function addClass() {
+  const inp = document.getElementById('cls-new');
+  const n = inp.value.trim(); if (!n) return;
+  const {data, error} = await sb.from('classes').insert({name: n, tier: 'Higher', teacher_id: user.id}).select().single();
+  if (error) { alert('Error creating class: ' + error.message); return; }
+  inp.value = '';
+  classes.push({...data, taught_topics: [], flagged_questions: [], quiz_history: []});
+  curClass = classes[classes.length - 1];
+  renderClsSel();
+  renderTags();
   renderTopicList();
 }
 
-function renderTopicList(){
-  const q=(document.getElementById('topic-search').value||'').toLowerCase();
-  const list=document.getElementById('topic-list');
-  const items=TOPICS[curSubj].filter(t=>!q||t.text.toLowerCase().includes(q));
-  if(!items.length){list.innerHTML='<div class="no-results">No spec points match your search</div>';return;}
-  list.innerHTML=items.map(t=>{
-    const added=S.topics.includes(t.id);
-    return `<div class="topic-item${added?' added':''}">
+async function switchClass() {
+  const id = document.getElementById('cls-sel').value;
+  curClass = classes.find(c => c.id === id) || null;
+  renderTags();
+  renderTopicList();
+  renderStats();
+  renderRev();
+  renderHist();
+}
+
+// ── Topics ────────────────────────────────────────────────────────
+function switchSubj(subj, el) {
+  curSubj = subj;
+  document.querySelectorAll('.subj-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('topic-search').value = '';
+  renderTopicList();
+}
+
+function renderTopicList() {
+  const q = (document.getElementById('topic-search').value || '').toLowerCase();
+  const list = document.getElementById('topic-list');
+  const addedIds = curClass ? (curClass.taught_topics || []).map(t => t.spec_id) : [];
+  const items = TOPICS[curSubj].filter(t => !q || t.text.toLowerCase().includes(q));
+  if (!items.length) { list.innerHTML = '<div class="no-results">No spec points match</div>'; return; }
+  list.innerHTML = items.map(t => {
+    const added = addedIds.includes(t.id);
+    return `<div class="topic-item${added ? ' added' : ''}">
       <span>${t.text}</span>
-      <button class="add-btn" onclick="addTopic('${t.id}')" ${added?'disabled':''}>+ Add</button>
+      <button class="add-btn" onclick="addTopic('${t.id}')" ${added ? 'disabled' : ''}>+ Add</button>
     </div>`;
   }).join('');
 }
 
-function addTopic(id){
-  if(S.topics.includes(id))return;
-  S.topics.push(id);
-  if(S.cur&&S.classes[S.cur]){S.classes[S.cur].topics=S.topics;save();}
-  renderTags();renderTopicList();
+async function addTopic(id) {
+  if (!curClass) { alert('Select a class first'); return; }
+  const already = (curClass.taught_topics || []).find(t => t.spec_id === id);
+  if (already) return;
+  const topicObj = getTopicById(id);
+  const {data, error} = await sb.from('taught_topics').insert({
+    class_id: curClass.id, spec_id: id, spec_text: topicObj.text,
+    taught_date: new Date().toISOString().split('T')[0]
+  }).select().single();
+  if (error) { alert('Error: ' + error.message); return; }
+  curClass.taught_topics = curClass.taught_topics || [];
+  curClass.taught_topics.push(data);
+  renderTags();
+  renderTopicList();
 }
 
-function removeTopic(id){
-  S.topics=S.topics.filter(x=>x!==id);
-  if(S.cur&&S.classes[S.cur]){S.classes[S.cur].topics=S.topics;save();}
-  renderTags();renderTopicList();
+async function removeTopic(id) {
+  if (!curClass) return;
+  await sb.from('taught_topics').delete().eq('class_id', curClass.id).eq('spec_id', id);
+  curClass.taught_topics = (curClass.taught_topics || []).filter(t => t.spec_id !== id);
+  renderTags();
+  renderTopicList();
 }
 
-function getTopicText(id){
-  for(const subj of Object.values(TOPICS)){
-    const found=subj.find(t=>t.id===id);
-    if(found)return found.text;
+function getTopicById(id) {
+  for (const subj of Object.values(TOPICS)) {
+    const found = subj.find(t => t.id === id);
+    if (found) return found;
   }
-  return id;
+  return {id, text: id};
 }
 
-function renderTags(){
-  const w=document.getElementById('tags-wrap');
-  const cnt=document.getElementById('topics-count');
-  cnt.textContent=S.topics.length?`(${S.topics.length})`:'';
-  if(!S.topics.length){w.innerHTML='<span class="empty">No spec points added yet</span>';return;}
-  w.innerHTML=S.topics.map(id=>`<span class="tag ${subjOf(id)}">${getTopicText(id)} <span style="cursor:pointer;margin-left:2px" onclick="removeTopic('${id}')">×</span></span>`).join('');
+function subjOf(id) { return id.startsWith('4') ? 'bio' : id.startsWith('5') ? 'chem' : 'phys'; }
+
+function renderTags() {
+  const w = document.getElementById('tags-wrap');
+  const cnt = document.getElementById('topics-count');
+  const topics = curClass ? (curClass.taught_topics || []) : [];
+  cnt.textContent = topics.length ? `(${topics.length})` : '';
+  if (!topics.length) { w.innerHTML = '<span class="empty">No spec points added yet</span>'; return; }
+  w.innerHTML = topics.map(t =>
+    `<span class="tag ${subjOf(t.spec_id)}">${t.spec_text} <span style="cursor:pointer;margin-left:2px" onclick="removeTopic('${t.spec_id}')">×</span></span>`
+  ).join('');
 }
 
-function renderClsSel(){
-  const sel=document.getElementById('cls-sel');
-  const cls=Object.keys(S.classes);
-  sel.innerHTML='<option value="">— select class —</option>'+cls.map(c=>`<option${S.cur===c?' selected':''}>${c}</option>`).join('');
-}
+// ── Stats ─────────────────────────────────────────────────────────
+function renderStats() {
+  const el = document.getElementById('stats-body');
+  if (!curClass) { el.innerHTML = '<span class="empty">Select a class to see stats.</span>'; return; }
+  const history = curClass.quiz_history || [];
+  const flagged = curClass.flagged_questions || [];
+  if (!history.length) { el.innerHTML = '<span class="empty">No quizzes run yet for this class.</span>'; return; }
 
-function addClass(){
-  const inp=document.getElementById('cls-new');
-  const n=inp.value.trim();if(!n)return;
-  if(!S.classes[n])S.classes[n]={topics:[],history:[],flagged:[]};
-  inp.value='';S.cur=n;S.topics=[...S.classes[n].topics];
-  renderClsSel();renderTags();renderTopicList();save();
-}
-
-function switchClass(){
-  S.cur=document.getElementById('cls-sel').value||null;
-  S.topics=S.cur&&S.classes[S.cur]?[...S.classes[S.cur].topics]:[];
-  renderTags();renderTopicList();renderHist();renderRev();
-}
-
-function renderHist(){
-  const el=document.getElementById('hist-body');
-  if(!S.cur||!S.classes[S.cur]){el.innerHTML='<span class="empty">Select a class to see history.</span>';return;}
-  const h=S.classes[S.cur].history||[];
-  if(!h.length){el.innerHTML=`<span class="empty">No quizzes run yet for ${S.cur}.</span>`;return;}
-  el.innerHTML=h.slice().reverse().map(r=>`
-    <div class="q-block" style="font-size:13px">
-      <div style="color:#888;font-size:11px;margin-bottom:3px">${new Date(r.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
-      <div style="font-weight:500">${r.n} questions · ${r.tier} tier</div>
-      ${r.low&&r.low.length?`<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${r.low.map(q=>`<span class="badge badge-low">⚑ ${q}</span>`).join('')}</div>`:''}
-    </div>`).join('');
-}
-
-function renderRev(){
-  const el=document.getElementById('rev-body');
-  if(!S.cur||!S.classes[S.cur]){el.innerHTML='<span class="empty">Select a class.</span>';return;}
-  const fl=S.classes[S.cur].flagged||[];
-  if(!fl.length){el.innerHTML='<span class="empty">No questions flagged for review yet.</span>';return;}
-  el.innerHTML=fl.map((f,i)=>`
-    <div class="q-block">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div>
-          <div style="font-size:11px;color:#888;margin-bottom:3px">${f.topic} · ${new Date(f.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
-          <div style="font-size:13px;margin-bottom:5px">${f.q}</div>
-          <span class="badge badge-low">${f.pct}% correct</span>
-        </div>
-        <button class="btn btn-sm" onclick="dismissFlag(${i})">Dismiss</button>
-      </div>
-    </div>`).join('');
-}
-
-function dismissFlag(i){
-  if(S.cur&&S.classes[S.cur]){S.classes[S.cur].flagged.splice(i,1);save();renderRev();}
-}
-
-function showTab(t){
-  ['build','history','review'].forEach(x=>{
-    document.getElementById('pane-'+x).style.display=x===t?'block':'none';
-    document.getElementById('tb-'+x).classList.toggle('on',x===t);
-  });
-  if(t==='history')renderHist();
-  if(t==='review')renderRev();
-}
-
-async function generate(){
-  if(!S.topics.length){alert('Add at least one spec point first.');return;}
-  const btn=document.getElementById('gen-btn');
-  btn.innerHTML='<span class="spinner"></span> Generating…';
-  btn.disabled=true;
-  document.getElementById('gen-err').innerHTML='';
-
-  const tier=document.getElementById('tier').value;
-  const total=Math.max(1,parseInt(document.getElementById('q-total').value)||5);
-  const mc=Math.min(parseInt(document.getElementById('q-mc').value)||0,total);
-  const incFlag=document.getElementById('inc-flag').value==='1';
-  S.lastSettings={tier,total,mc,cls:S.cur};save();
-
-  const flagged=incFlag&&S.cur&&S.classes[S.cur]?(S.classes[S.cur].flagged||[]).slice(0,3):[];
-  const topicObjs=S.topics.map(id=>({id,text:getTopicText(id)}));
-
-  try{
-    const resp=await fetch('/api/generate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({topics:topicObjs,tier,total,mc,flagged})
+  // Aggregate % correct per spec point
+  const specStats = {};
+  history.forEach(h => {
+    const qs = h.questions || [];
+    qs.forEach(q => {
+      if (q.spec_id && q.pct_correct !== undefined) {
+        if (!specStats[q.spec_id]) specStats[q.spec_id] = {total: 0, count: 0, text: q.topic || q.spec_id};
+        specStats[q.spec_id].total += q.pct_correct;
+        specStats[q.spec_id].count++;
+      }
     });
-    if(!resp.ok){const e=await resp.json();throw new Error(e.error||`HTTP ${resp.status}`);}
-    const data=await resp.json();
-    S.quiz=data.questions||[];
-    if(!S.quiz.length)throw new Error('No questions returned');
-    if(S.cur&&S.classes[S.cur]){
-      S.classes[S.cur].history=S.classes[S.cur].history||[];
-      S.classes[S.cur].history.push({date:new Date().toISOString(),tier,n:S.quiz.length,low:[]});
-      save();
-    }
-    renderQuiz();
-  }catch(e){
-    document.getElementById('gen-err').innerHTML=`<div class="err">Error: ${e.message}</div>`;
-  }
-  btn.innerHTML='&#9654; Generate quiz';
-  btn.disabled=false;
+  });
+
+  const totalQuizzes = history.length;
+  const allPcts = flagged.map(f => f.pct_correct).filter(p => p !== undefined);
+  const avgPct = allPcts.length ? Math.round(allPcts.reduce((a, b) => a + b, 0) / allPcts.length) : null;
+  const weakTopics = flagged.filter(f => (f.pct_correct || 0) < 60).length;
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${totalQuizzes}</div><div class="stat-lbl">Quizzes run</div></div>
+      <div class="stat-box"><div class="stat-val">${curClass.taught_topics?.length || 0}</div><div class="stat-lbl">Spec points covered</div></div>
+      <div class="stat-box"><div class="stat-val">${avgPct !== null ? avgPct + '%' : '—'}</div><div class="stat-lbl">Avg % correct</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:${weakTopics > 0 ? '#A32D2D' : '#3B6D11'}">${weakTopics}</div><div class="stat-lbl">Topics needing review</div></div>
+    </div>
+    ${Object.keys(specStats).length ? `
+      <div class="slabel" style="margin-bottom:10px">Performance by spec point</div>
+      ${Object.entries(specStats).sort((a,b) => (a[1].total/a[1].count) - (b[1].total/b[1].count)).map(([id, s]) => {
+        const avg = Math.round(s.total / s.count);
+        const cls = avg < 50 ? 'low' : avg < 70 ? 'mid' : 'high';
+        return `<div class="spec-bar">
+          <span style="flex:2;font-size:12px;color:#444">${s.text}</span>
+          <div class="spec-bar-bg"><div class="spec-bar-fill ${cls}" style="width:${avg}%"></div></div>
+          <span style="width:36px;text-align:right;font-weight:500;font-size:12px">${avg}%</span>
+        </div>`;
+      }).join('')}` : ''}
+  `;
 }
 
-function renderQuiz(){
-  const out=document.getElementById('quiz-out');
-  const ls=S.lastSettings||{};
-  out.innerHTML=`<div class="card">
+// ── Review ────────────────────────────────────────────────────────
+function renderRev() {
+  const el = document.getElementById('rev-body');
+  if (!curClass) { el.innerHTML = '<span class="empty">Select a class.</span>'; return; }
+  const fl = (curClass.flagged_questions || []).filter(f => (f.pct_correct || 0) < 60);
+  if (!fl.length) { el.innerHTML = '<span class="empty">No questions flagged for review yet.</span>'; return; }
+  el.innerHTML = `<div style="font-size:13px;font-weight:500;margin-bottom:10px">Questions to re-ask <span style="color:#888;font-size:12px">(below 60% correct)</span></div>` +
+    fl.map((f, i) => `
+      <div class="q-block">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div style="font-size:11px;color:#888;margin-bottom:3px">${f.topic || ''} · ${new Date(f.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</div>
+            <div style="font-size:13px;margin-bottom:5px">${f.question}</div>
+            <span class="badge badge-low">${f.pct_correct}% correct</span>
+          </div>
+          <button class="btn btn-sm btn-danger" onclick="dismissFlag('${f.id}')">Dismiss</button>
+        </div>
+      </div>`).join('');
+}
+
+async function dismissFlag(id) {
+  await sb.from('flagged_questions').delete().eq('id', id);
+  if (curClass) curClass.flagged_questions = (curClass.flagged_questions || []).filter(f => f.id !== id);
+  renderRev();
+}
+
+// ── History ────────────────────────────────────────────────────────
+function renderHist() {
+  const el = document.getElementById('hist-body');
+  if (!curClass) { el.innerHTML = '<span class="empty">Select a class to see history.</span>'; return; }
+  const h = curClass.quiz_history || [];
+  if (!h.length) { el.innerHTML = `<span class="empty">No quizzes run yet for ${curClass.name}.</span>`; return; }
+  el.innerHTML = h.slice().reverse().map(r => `
+    <div class="q-block" style="font-size:13px">
+      <div style="color:#888;font-size:11px;margin-bottom:3px">${new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="font-weight:500">${(r.questions||[]).length} questions · ${r.tier || ''} tier</div>
+    </div>`).join('');
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────
+function showTab(t) {
+  ['build','stats','review','history'].forEach(x => {
+    document.getElementById('pane-' + (x === 'history' ? 'history' : x)).style.display = x === t ? 'block' : 'none';
+    document.getElementById('tb-' + (x === 'history' ? 'history' : x)).classList.toggle('on', x === t);
+  });
+  if (t === 'stats') renderStats();
+  if (t === 'review') renderRev();
+  if (t === 'history') renderHist();
+}
+
+// ── Generate ──────────────────────────────────────────────────────
+async function generate() {
+  if (!curClass) { alert('Select a class first.'); return; }
+  const topics = curClass.taught_topics || [];
+  if (!topics.length) { alert('Add at least one spec point first.'); return; }
+
+  const btn = document.getElementById('gen-btn');
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+  btn.disabled = true;
+  document.getElementById('gen-err').innerHTML = '';
+
+  const tier = document.getElementById('tier').value;
+  const total = Math.max(1, parseInt(document.getElementById('q-total').value) || 5);
+  const mc = Math.min(parseInt(document.getElementById('q-mc').value) || 0, total);
+  const incFlag = document.getElementById('inc-flag').value === '1';
+  lastSettings = {tier, total, mc};
+
+  const flagged = incFlag ? (curClass.flagged_questions || []).filter(f => (f.pct_correct||0) < 60).slice(0, 3) : [];
+  const topicObjs = topics.map(t => ({id: t.spec_id, text: t.spec_text}));
+
+  try {
+    const resp = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({topics: topicObjs, tier, total, mc, flagged: flagged.map(f => ({q: f.question})), class_id: curClass.id})
+    });
+    if (!resp.ok) { const e = await resp.json(); throw new Error(e.error || `HTTP ${resp.status}`); }
+    const data = await resp.json();
+    quiz = data.questions || [];
+    if (!quiz.length) throw new Error('No questions returned');
+
+    // Refresh class data
+    await loadClasses();
+    const updated = classes.find(c => c.id === curClass.id);
+    if (updated) curClass = updated;
+
+    renderQuiz();
+  } catch (e) {
+    document.getElementById('gen-err').innerHTML = `<div class="err">Error: ${e.message}</div>`;
+  }
+  btn.innerHTML = '&#9654; Generate quiz';
+  btn.disabled = false;
+}
+
+// ── Render quiz ───────────────────────────────────────────────────
+function renderQuiz() {
+  const out = document.getElementById('quiz-out');
+  out.innerHTML = `<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:15px;font-weight:500">Today's quiz ${ls.cls?`<span class="badge badge-blue" style="margin-left:6px">${ls.cls}</span>`:''} <span class="badge" style="background:#f0f0f0;color:#666;margin-left:4px">${ls.tier||''}</span></div>
+      <div style="font-size:15px;font-weight:500">
+        Today's quiz
+        ${curClass ? `<span class="badge badge-blue" style="margin-left:6px">${curClass.name}</span>` : ''}
+        <span class="badge badge-grey" style="margin-left:4px">${lastSettings.tier || ''}</span>
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-sm btn-copy" onclick="copyForDoc()">&#128203; Copy for document</button>
-        <button class="btn btn-sm" onclick="saveResults()">&#128190; Save results</button>
+        <button class="btn btn-sm btn-primary" onclick="saveResults()">&#128190; Save results</button>
       </div>
     </div>
-    ${S.quiz.map((q,i)=>qHtml(q,i)).join('')}
+    ${quiz.map((q, i) => qHtml(q, i)).join('')}
   </div>`;
 }
 
-function qHtml(q,i){
-  const isMC=q.type==='mc';
-  const specRef=q.spec_id?`<span style="font-family:monospace;background:#f0f0f0;padding:1px 5px;border-radius:4px;margin-left:4px">${q.spec_id}</span>`:'';
+function qHtml(q, i) {
+  const isMC = q.type === 'mc';
+  const specRef = q.spec_id ? `<span style="font-family:monospace;background:#f0f0f0;padding:1px 5px;border-radius:4px;margin-left:4px">${q.spec_id}</span>` : '';
   return `<div class="q-block" id="qb-${i}">
-    <div class="q-meta">Q${i+1} · ${q.topic||''} ${specRef} · ${isMC?'multiple choice':'short answer'}</div>
+    <div class="q-meta">Q${i+1} · ${q.topic||''} ${specRef} · ${isMC ? 'multiple choice' : 'short answer'}</div>
     <div class="q-text">${q.question}</div>
-    ${isMC?`<div class="mc-options" id="mc-${i}">${(q.options||[]).map((o,j)=>`<div class="mc-opt" onclick="pickMC(${i},${j},'${(q.answer||'').replace(/'/g,"\\'")}' )">${o}</div>`).join('')}</div>`
-    :`<button class="btn btn-sm" onclick="showAns(${i})">Show model answer</button>`}
-    <div class="ans-box" id="ans-${i}"><div class="ans-lbl">Model answer (AQA spec · ${q.spec_id||''})</div><div style="font-size:13px;line-height:1.5">${q.model_answer||''}</div></div>
+    ${isMC
+      ? `<div class="mc-options" id="mc-${i}">${(q.options||[]).map((o,j) => `<div class="mc-opt" onclick="pickMC(${i},${j},'${(q.answer||'').replace(/'/g,"\\'")}' )">${o}</div>`).join('')}</div>`
+      : `<button class="btn btn-sm" onclick="showAns(${i})">Show model answer</button>`}
+    <div class="ans-box" id="ans-${i}">
+      <div class="ans-lbl">Model answer (AQA spec · ${q.spec_id||''})</div>
+      <div style="font-size:13px;line-height:1.5">${q.model_answer||''}</div>
+    </div>
     <div class="pct-row">
       % correct:
       <input type="number" class="pct-input" id="pct-${i}" min="0" max="100" placeholder="%"
@@ -535,60 +800,65 @@ function qHtml(q,i){
   </div>`;
 }
 
-function pickMC(qi,optIdx,correct){
-  const letters=['A','B','C','D'];
-  document.querySelectorAll(`#mc-${qi} .mc-opt`).forEach((o,j)=>{
+function pickMC(qi, optIdx, correct) {
+  const letters = ['A','B','C','D'];
+  document.querySelectorAll(`#mc-${qi} .mc-opt`).forEach((o, j) => {
     o.classList.remove('correct','wrong');
-    if(letters[j]===correct)o.classList.add('correct');
-    else if(j===optIdx)o.classList.add('wrong');
+    if (letters[j] === correct) o.classList.add('correct');
+    else if (j === optIdx) o.classList.add('wrong');
   });
   showAns(qi);
 }
 
-function showAns(i){document.getElementById('ans-'+i).classList.add('show');}
+function showAns(i) { document.getElementById('ans-' + i).classList.add('show'); }
 
-function checkPct(i,question,topic){
-  const v=parseInt(document.getElementById('pct-'+i).value);
-  const b=document.getElementById('pctb-'+i);
-  if(isNaN(v)){b.innerHTML='';return;}
-  b.innerHTML=v<60?'<span class="badge badge-low">⚑ Flag for review</span>':'<span class="badge badge-ok">✓ Good</span>';
+function checkPct(i) {
+  const v = parseInt(document.getElementById('pct-' + i).value);
+  const b = document.getElementById('pctb-' + i);
+  if (isNaN(v)) { b.innerHTML = ''; return; }
+  b.innerHTML = v < 60 ? '<span class="badge badge-low">⚑ Flag for review</span>' : '<span class="badge badge-ok">✓ Good</span>';
 }
 
-function copyForDoc(){
-  const ls=S.lastSettings||{};
-  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  let out=`AQA GCSE Combined Science — Retrieval Quiz\n`;
-  out+=`${ls.cls?`Class: ${ls.cls}  |  `:''}${ls.tier||''} Tier  |  ${date}\n`;
-  out+=`${'─'.repeat(60)}\n\n`;
-  S.quiz.forEach((q,i)=>{
-    out+=`Q${i+1}. [${q.topic}${q.spec_id?' · '+q.spec_id:''}]\n${q.question}\n`;
-    if(q.type==='mc'&&q.options){q.options.forEach(o=>out+=`   ${o}\n`);}
-    out+=`\n`;
-  });
-  out+=`${'─'.repeat(60)}\nMODEL ANSWERS\n${'─'.repeat(60)}\n\n`;
-  S.quiz.forEach((q,i)=>{out+=`Q${i+1}. ${q.model_answer}\n\n`;});
-  navigator.clipboard.writeText(out).then(()=>alert('Copied! Paste into Word or Google Docs.')).catch(()=>alert('Copy failed.'));
-}
-
-function saveResults(){
-  const ls=S.lastSettings||{};
-  if(!ls.cls||!S.classes[ls.cls]){alert('No class selected.');return;}
-  const cl=S.classes[ls.cls];
-  cl.flagged=cl.flagged||[];
-  const hist=cl.history;const latest=hist&&hist[hist.length-1];
-  S.quiz.forEach((q,i)=>{
-    const v=parseInt(document.getElementById('pct-'+i).value);
-    if(!isNaN(v)&&v<60){
-      cl.flagged.push({q:q.question,topic:q.topic,pct:v,date:new Date().toISOString()});
-      if(latest){latest.low=latest.low||[];latest.low.push(q.topic);}
+async function saveResults() {
+  if (!curClass) { alert('No class selected.'); return; }
+  const toFlag = [];
+  quiz.forEach((q, i) => {
+    const v = parseInt(document.getElementById('pct-' + i).value);
+    if (!isNaN(v) && v < 60) {
+      toFlag.push({class_id: curClass.id, question: q.question, spec_id: q.spec_id, topic: q.topic, pct_correct: v});
     }
   });
-  save();
-  alert('Saved! Low-scoring questions flagged for review.');
+  if (toFlag.length) {
+    const {error} = await sb.from('flagged_questions').insert(toFlag);
+    if (error) { alert('Error saving: ' + error.message); return; }
+  }
+  // Reload class data
+  await loadClasses();
+  const updated = classes.find(c => c.id === curClass.id);
+  if (updated) curClass = updated;
+  alert('Saved! ' + (toFlag.length ? toFlag.length + ' question(s) flagged for review.' : 'All questions answered well.'));
   renderRev();
+  renderStats();
 }
 
-boot();
+function copyForDoc() {
+  const date = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
+  let out = `AQA GCSE Combined Science — Retrieval Quiz\n`;
+  out += `${curClass ? 'Class: ' + curClass.name + '  |  ' : ''}${lastSettings.tier||''} Tier  |  ${date}\n`;
+  out += '─'.repeat(60) + '\n\n';
+  quiz.forEach((q, i) => {
+    out += `Q${i+1}. [${q.topic}${q.spec_id ? ' · ' + q.spec_id : ''}]\n${q.question}\n`;
+    if (q.type === 'mc' && q.options) q.options.forEach(o => out += `   ${o}\n`);
+    out += '\n';
+  });
+  out += '─'.repeat(60) + '\nMODEL ANSWERS\n' + '─'.repeat(60) + '\n\n';
+  quiz.forEach((q, i) => { out += `Q${i+1}. ${q.model_answer}\n\n`; });
+  navigator.clipboard.writeText(out)
+    .then(() => alert('Copied! Paste into Word or Google Docs.'))
+    .catch(() => alert('Copy failed.'));
+}
+
+init();
 </script>
 </body>
 </html>
