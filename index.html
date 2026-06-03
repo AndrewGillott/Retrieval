@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieal — AQA GCSE Science Quiz Builder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a;padding:2rem}
+.app{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem}
+.slabel{font-size:12px;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+select,input[type=text],input[type=number],input[type=search]{height:36px;font-size:14px;padding:0 10px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#1a1a1a;outline:none}
+input[type=search]{width:100%;margin-bottom:8px}
+.btn{height:36px;padding:0 14px;font-size:14px;border:1px solid #ccc;border-radius:8px;background:transparent;color:#1a1a1a;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:#f0f0f0}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-primary:hover{opacity:.85;background:#1a1a1a}
+.btn-sm{height:28px;padding:0 10px;font-size:12px}
+.btn-copy{background:#f0f7ff;color:#185FA5;border-color:#B5D4F4}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;background:#f0f0f0;border:1px solid #ddd;color:#1a1a1a}
+.tag.bio{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97}
+.tag.chem{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}
+.tag.phys{background:#FAEEDA;color:#854F0B;border-color:#FAC775}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:6px;min-height:32px;align-items:center}
+.topic-panel{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:8px}
+.subj-tabs{display:flex;border-bottom:1px solid #e0e0e0;background:#f9f9f9}
+.subj-tab{padding:8px 16px;font-size:13px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent}
+.subj-tab.on{color:#1a1a1a;border-bottom-color:#1a1a1a;background:#fff}
+.topic-list{max-height:220px;overflow-y:auto;padding:6px}
+.topic-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:6px;font-size:13px;gap:8px}
+.topic-item:hover{background:#f5f5f5}
+.topic-item.added{opacity:.4}
+.topic-item span{flex:1;line-height:1.4}
+.topic-item .add-btn{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid #ccc;background:transparent;cursor:pointer;white-space:nowrap;color:#1a1a1a}
+.topic-item .add-btn:hover{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.topic-item.added .add-btn{display:none}
+.q-block{border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.q-meta{font-size:11px;color:#888;margin-bottom:4px}
+.q-text{font-size:15px;line-height:1.5;margin-bottom:10px}
+.mc-options{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.mc-opt{font-size:13px;padding:6px 10px;border-radius:8px;background:#f5f5f5;cursor:pointer;border:1px solid transparent;line-height:1.4}
+.mc-opt:hover{border-color:#ccc}
+.mc-opt.correct{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97}
+.mc-opt.wrong{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1}
+.ans-box{font-size:13px;background:#f5f5f5;border-radius:8px;padding:8px 10px;display:none;margin-top:6px}
+.ans-box.show{display:block}
+.ans-lbl{font-size:11px;font-weight:500;color:#aaa;margin-bottom:3px}
+.pct-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:#888}
+.pct-input{width:60px;height:28px;font-size:12px;padding:0 6px}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px}
+.badge-low{background:#FCEBEB;color:#A32D2D}
+.badge-ok{background:#EAF3DE;color:#3B6D11}
+.badge-blue{background:#E6F1FB;color:#185FA5}
+.tab-row{display:flex;gap:0;border-bottom:1px solid #e0e0e0;margin-bottom:14px}
+.tab{padding:7px 16px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#888;background:transparent;border-top:none;border-left:none;border-right:none}
+.tab.on{color:#1a1a1a;border-bottom-color:#1a1a1a}
+.divider{border:none;border-top:1px solid #e0e0e0;margin:12px 0}
+.empty{font-size:13px;color:#888;padding:.5rem 0}
+.spinner{width:14px;height:14px;border:2px solid #ddd;border-top-color:#1a1a1a;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{font-size:13px;color:#A32D2D;padding:8px 10px;background:#FCEBEB;border-radius:8px;margin-top:8px}
+h1{font-size:20px;font-weight:500;margin-bottom:4px}
+.subtitle{font-size:13px;color:#888}
+.no-results{font-size:13px;color:#aaa;padding:12px 8px;text-align:center}
+.logo{font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#1a1a1a}
+.logo span{color:#4F46E5}
+</style>
+</head>
+<body>
+<div class="app">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div class="logo">Retri<span>eal</span></div>
+      <div class="subtitle">AQA GCSE Combined Science · Evidence-based retrieval practice</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tab-row">
+      <button class="tab on" id="tb-build" onclick="showTab('build')">Quiz builder</button>
+      <button class="tab" id="tb-history" onclick="showTab('history')">Class history</button>
+      <button class="tab" id="tb-review" onclick="showTab('review')">Needs review</button>
+    </div>
+
+    <div id="pane-build">
+      <div class="slabel">Class</div>
+      <div class="row" style="margin-bottom:14px">
+        <select id="cls-sel" onchange="switchClass()" style="width:170px"></select>
+        <input type="text" id="cls-new" placeholder="New class name…" style="width:150px">
+        <button class="btn btn-sm" onclick="addClass()">+ Add</button>
+      </div>
+
+      <div class="slabel">Add spec points covered</div>
+      <div class="topic-panel">
+        <div class="subj-tabs">
+          <button class="subj-tab on" onclick="switchSubj('bio',this)">Biology</button>
+          <button class="subj-tab" onclick="switchSubj('chem',this)">Chemistry</button>
+          <button class="subj-tab" onclick="switchSubj('phys',this)">Physics</button>
+        </div>
+        <div style="padding:8px 8px 0">
+          <input type="search" id="topic-search" placeholder="Search spec points…" oninput="renderTopicList()">
+        </div>
+        <div class="topic-list" id="topic-list"></div>
+      </div>
+
+      <div class="slabel" style="margin-top:4px">Spec points added <span id="topics-count" style="font-weight:400;color:#aaa"></span></div>
+      <div class="tags-wrap" id="tags-wrap"><span class="empty">No spec points added yet</span></div>
+
+      <div class="divider"></div>
+      <div class="slabel">Quiz settings</div>
+      <div class="row" style="margin-bottom:14px;gap:14px">
+        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Tier</div>
+          <select id="tier" style="width:130px"><option>Foundation</option><option selected>Higher</option></select></div>
+        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Total questions</div>
+          <input type="number" id="q-total" value="5" min="1" max="20" style="width:74px"></div>
+        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Of which MC</div>
+          <input type="number" id="q-mc" value="2" min="0" max="10" style="width:74px"></div>
+        <div><div style="font-size:12px;color:#666;margin-bottom:4px">Include flagged</div>
+          <select id="inc-flag" style="width:90px"><option value="1">Yes</option><option value="0">No</option></select></div>
+      </div>
+
+      <button class="btn btn-primary" id="gen-btn" onclick="generate()">&#9654; Generate quiz</button>
+      <div id="gen-err"></div>
+    </div>
+
+    <div id="pane-history" style="display:none"><div id="hist-body"><span class="empty">Select a class to see history.</span></div></div>
+    <div id="pane-review" style="display:none"><div id="rev-body"><span class="empty">No questions flagged yet.</span></div></div>
+  </div>
+
+  <div id="quiz-out"></div>
+</div>
+
+<script>
+const TOPICS = {
+  bio: [
+    {id:"4.1.1a",text:"4.1.1 — Describe the structure of eukaryotic cells (animal and plant)"},
+    {id:"4.1.1b",text:"4.1.1 — Describe the structure of prokaryotic cells and compare to eukaryotic cells"},
+    {id:"4.1.1c",text:"4.1.1 — Explain the function of sub-cellular structures (nucleus, mitochondria, ribosomes, cell membrane, cell wall, chloroplasts, vacuole)"},
+    {id:"4.1.1d",text:"4.1.1 — Explain how to use a light microscope and calculate magnification"},
+    {id:"4.1.2a",text:"4.1.2 — Describe the structure of a chromosome"},
+    {id:"4.1.2b",text:"4.1.2 — Explain the stages of mitosis and why it is important"},
+    {id:"4.1.2c",text:"4.1.2 — Explain what stem cells are and their potential uses"},
+    {id:"4.1.2d",text:"4.1.2 — Describe the ethical issues around stem cell use"},
+    {id:"4.1.3a",text:"4.1.3 — Define diffusion and describe factors affecting rate of diffusion"},
+    {id:"4.1.3b",text:"4.1.3 — Define osmosis and explain what happens to cells in different solutions"},
+    {id:"4.1.3c",text:"4.1.3 — Define active transport and explain why it requires energy"},
+    {id:"4.2.1",text:"4.2.1 — Describe the levels of organisation: cells, tissues, organs, organ systems"},
+    {id:"4.2.2",text:"4.2.2 — Describe the structure and function of animal tissues"},
+    {id:"4.2.3a",text:"4.2.3 — Describe the structure and function of the heart"},
+    {id:"4.2.3b",text:"4.2.3 — Describe the structure and function of blood vessels (arteries, veins, capillaries)"},
+    {id:"4.2.3c",text:"4.2.3 — Explain how the heart rate is controlled and what affects it"},
+    {id:"4.2.4",text:"4.2.4 — Describe the components of blood and their functions"},
+    {id:"4.2.5",text:"4.2.5 — Explain coronary heart disease and treatments (stents, statins)"},
+    {id:"4.2.6a",text:"4.2.6 — Describe the effects of lifestyle on non-communicable diseases"},
+    {id:"4.2.6b",text:"4.2.6 — Evaluate the relationship between health and disease"},
+    {id:"4.2.7a",text:"4.2.7 — Describe the structure and function of plant tissues"},
+    {id:"4.2.7b",text:"4.2.7 — Explain transpiration and the factors that affect it"},
+    {id:"4.2.7c",text:"4.2.7 — Explain translocation in plants"},
+    {id:"4.3.1a",text:"4.3.1 — Define a pathogen and describe the types (bacteria, viruses, fungi, protists)"},
+    {id:"4.3.1b",text:"4.3.1 — Explain how pathogens are spread and how to reduce transmission"},
+    {id:"4.3.2a",text:"4.3.2 — Describe measles, HIV, tobacco mosaic virus as examples of viral disease"},
+    {id:"4.3.2b",text:"4.3.2 — Describe salmonella and gonorrhoea as examples of bacterial disease"},
+    {id:"4.3.3a",text:"4.3.3 — Describe rose black spot as an example of a fungal disease"},
+    {id:"4.3.3b",text:"4.3.3 — Describe malaria as an example of a protist disease"},
+    {id:"4.3.4",text:"4.3.4 — Describe the human body's defence systems against pathogens"},
+    {id:"4.3.5",text:"4.3.5 — Explain how vaccination works and the importance of herd immunity"},
+    {id:"4.3.6",text:"4.3.6 — Explain how antibiotics work and why antibiotic resistance is a problem"},
+    {id:"4.3.7",text:"4.3.7 — Describe the process of drug discovery and clinical trials"},
+    {id:"4.4.1",text:"4.4.1 — Write and interpret the equation for photosynthesis"},
+    {id:"4.4.2a",text:"4.4.2 — Explain the factors limiting the rate of photosynthesis"},
+    {id:"4.4.2b",text:"4.4.2 — Interpret graphs of limiting factors in photosynthesis"},
+    {id:"4.4.3",text:"4.4.3 — Describe the uses of glucose produced in photosynthesis"},
+    {id:"4.4.4",text:"4.4.4 — Write and interpret the equation for aerobic respiration"},
+    {id:"4.4.5",text:"4.4.5 — Describe anaerobic respiration in animals and yeast"},
+    {id:"4.4.6",text:"4.4.6 — Explain the response to exercise (heart rate, breathing rate, blood flow)"},
+    {id:"4.4.7",text:"4.4.7 — Define metabolism and give examples of metabolic reactions"},
+    {id:"4.5.1",text:"4.5.1 — Define homeostasis and explain its importance"},
+    {id:"4.5.2a",text:"4.5.2 — Describe the structure and function of the nervous system"},
+    {id:"4.5.2b",text:"4.5.2 — Explain a reflex arc with a specific example"},
+    {id:"4.5.2c",text:"4.5.2 — Describe the structure of a synapse and how nerve impulses are transmitted"},
+    {id:"4.5.3",text:"4.5.3 — Describe the structure of the brain and function of key regions"},
+    {id:"4.5.4",text:"4.5.4 — Describe the structure of the eye and explain accommodation"},
+    {id:"4.5.5",text:"4.5.5 — Describe the endocrine system and compare hormonal and nervous control"},
+    {id:"4.5.6",text:"4.5.6 — Explain how blood glucose is regulated by insulin and glucagon"},
+    {id:"4.5.7",text:"4.5.7 — Describe the role of hormones in the menstrual cycle"},
+    {id:"4.5.8",text:"4.5.8 — Evaluate methods of contraception"},
+    {id:"4.5.9",text:"4.5.9 — Explain how hormones are used to treat infertility (IVF) [HT]"},
+    {id:"4.5.10",text:"4.5.10 — Explain negative feedback in hormonal control [HT]"},
+    {id:"4.6.1",text:"4.6.1 — Compare sexual and asexual reproduction"},
+    {id:"4.6.2",text:"4.6.2 — Explain meiosis and how it produces genetic variation"},
+    {id:"4.6.3",text:"4.6.3 — Describe the structure of DNA and explain what a genome is"},
+    {id:"4.6.4",text:"4.6.4 — Explain protein synthesis (transcription and translation) [HT]"},
+    {id:"4.6.5",text:"4.6.5 — Explain what mutations are and how they affect proteins"},
+    {id:"4.6.6",text:"4.6.6 — Explain dominant and recessive inheritance using Punnett squares"},
+    {id:"4.6.7",text:"4.6.7 — Describe inherited disorders: polydactyly and cystic fibrosis"},
+    {id:"4.6.8",text:"4.6.8 — Explain sex determination in humans"},
+    {id:"4.6.9",text:"4.6.9 — Distinguish between continuous and discontinuous variation"},
+    {id:"4.6.10",text:"4.6.10 — Explain natural selection and evolution by Darwin"},
+    {id:"4.6.11",text:"4.6.11 — Describe selective breeding and its uses and risks"},
+    {id:"4.6.12",text:"4.6.12 — Describe genetic engineering and evaluate its uses"},
+    {id:"4.6.13",text:"4.6.13 — Explain how fossils form and what they tell us about evolution"},
+    {id:"4.6.14",text:"4.6.14 — Explain how antibiotic-resistant bacteria evolve by natural selection"},
+    {id:"4.6.15",text:"4.6.15 — Describe the classification system (kingdom to species)"},
+    {id:"4.7.1",text:"4.7.1 — Define a community, ecosystem and habitat; describe interdependence"},
+    {id:"4.7.2",text:"4.7.2 — Explain food chains, food webs and biomass pyramids"},
+    {id:"4.7.3",text:"4.7.3 — Describe abiotic and biotic factors that affect ecosystems"},
+    {id:"4.7.4",text:"4.7.4 — Explain how organisms are adapted to their environment"},
+    {id:"4.7.5",text:"4.7.5 — Explain intraspecific and interspecific competition"},
+    {id:"4.7.6",text:"4.7.6 — Interpret predator-prey graphs and explain the relationship"},
+    {id:"4.7.7a",text:"4.7.7 — Describe the carbon cycle"},
+    {id:"4.7.7b",text:"4.7.7 — Describe the water cycle"},
+    {id:"4.7.7c",text:"4.7.7 — Describe the nitrogen cycle including the role of bacteria"},
+    {id:"4.7.8",text:"4.7.8 — Explain the factors affecting rate of decomposition"},
+    {id:"4.7.9",text:"4.7.9 — Describe the effects of global warming on ecosystems and biodiversity"},
+    {id:"4.7.10",text:"4.7.10 — Describe human impacts on ecosystems (deforestation, pollution, land use)"}
+  ],
+  chem: [
+    {id:"5.1.1",text:"5.1.1 — Define atom, element, compound and mixture; interpret chemical formulae"},
+    {id:"5.1.2",text:"5.1.2 — Describe methods of separating mixtures"},
+    {id:"5.1.3a",text:"5.1.3 — Describe the development of the atomic model (Dalton, Thomson, Rutherford, Bohr)"},
+    {id:"5.1.3b",text:"5.1.3 — Describe Rutherford's alpha particle scattering experiment and what it showed"},
+    {id:"5.1.4",text:"5.1.4 — Describe the properties of protons, neutrons and electrons"},
+    {id:"5.1.5",text:"5.1.5 — Explain electronic structure and how to write electron configurations"},
+    {id:"5.1.6",text:"5.1.6 — Describe the structure and organisation of the periodic table"},
+    {id:"5.1.7a",text:"5.1.7 — Explain the properties and trends in Group 1 (alkali metals)"},
+    {id:"5.1.7b",text:"5.1.7 — Explain the properties and trends in Group 7 (halogens)"},
+    {id:"5.1.7c",text:"5.1.7 — Explain the properties of Group 0 (noble gases)"},
+    {id:"5.1.8",text:"5.1.8 — Compare the properties of metals and non-metals"},
+    {id:"5.1.9",text:"5.1.9 — Describe the properties and uses of transition metals"},
+    {id:"5.2.1a",text:"5.2.1 — Explain ionic bonding and predict the formulae of ionic compounds"},
+    {id:"5.2.1b",text:"5.2.1 — Explain covalent bonding and draw dot-and-cross diagrams"},
+    {id:"5.2.1c",text:"5.2.1 — Explain metallic bonding and relate it to properties of metals"},
+    {id:"5.2.2",text:"5.2.2 — Describe the structure and properties of ionic compounds"},
+    {id:"5.2.3a",text:"5.2.3 — Describe simple molecular structures and explain why they have low melting points"},
+    {id:"5.2.3b",text:"5.2.3 — Describe giant covalent structures (diamond, graphite, silicon dioxide)"},
+    {id:"5.2.4",text:"5.2.4 — Describe the structure of polymers and explain their properties"},
+    {id:"5.2.5",text:"5.2.5 — Describe giant metallic structures and explain metallic properties"},
+    {id:"5.2.6a",text:"5.2.6 — Explain the structure and properties of graphene and fullerenes"},
+    {id:"5.3.1",text:"5.3.1 — Explain conservation of mass and balance chemical equations"},
+    {id:"5.3.2",text:"5.3.2 — Calculate relative formula mass (Mr) from atomic masses"},
+    {id:"5.3.3",text:"5.3.3 — Define the mole and calculate moles, mass and concentration"},
+    {id:"5.3.4",text:"5.3.4 — Explain limiting reactants and calculate quantities [HT]"},
+    {id:"5.3.5",text:"5.3.5 — Calculate percentage yield and atom economy"},
+    {id:"5.4.1",text:"5.4.1 — Describe the reactivity series and predict reactions of metals"},
+    {id:"5.4.2a",text:"5.4.2 — Explain extraction of metals by reduction (carbon) and electrolysis"},
+    {id:"5.4.2b",text:"5.4.2 — Explain why aluminium is extracted by electrolysis"},
+    {id:"5.4.3",text:"5.4.3 — Define oxidation and reduction in terms of oxygen and electrons (OIL RIG)"},
+    {id:"5.4.4",text:"5.4.4 — Describe reactions of acids with metals, metal oxides, hydroxides and carbonates"},
+    {id:"5.4.5",text:"5.4.5 — Define pH scale; describe use of indicators and universal indicator"},
+    {id:"5.4.6a",text:"5.4.6 — Explain electrolysis of molten and aqueous ionic compounds"},
+    {id:"5.4.6b",text:"5.4.6 — Predict products of electrolysis at anode and cathode"},
+    {id:"5.5.1",text:"5.5.1 — Define exothermic and endothermic reactions with examples"},
+    {id:"5.5.2",text:"5.5.2 — Calculate energy change from bond energies [HT]"},
+    {id:"5.5.3",text:"5.5.3 — Describe hydrogen fuel cells and compare to batteries"},
+    {id:"5.6.1",text:"5.6.1 — Describe how to measure rate of reaction"},
+    {id:"5.6.2",text:"5.6.2 — Explain how temperature, concentration, surface area and catalysts affect reaction rate"},
+    {id:"5.6.3",text:"5.6.3 — Explain collision theory and activation energy"},
+    {id:"5.6.4",text:"5.6.4 — Explain reversible reactions and dynamic equilibrium [HT]"},
+    {id:"5.7.1",text:"5.7.1 — Describe crude oil as a mixture of hydrocarbons; define alkanes"},
+    {id:"5.7.2",text:"5.7.2 — Explain fractional distillation of crude oil and how it works"},
+    {id:"5.7.3",text:"5.7.3 — Describe the properties and uses of different fractions"},
+    {id:"5.7.4",text:"5.7.4 — Explain cracking and why it is useful"},
+    {id:"5.7.5",text:"5.7.5 — Describe alkenes and addition polymerisation"},
+    {id:"5.8.1",text:"5.8.1 — Define pure substance and formulation; give examples"},
+    {id:"5.8.2",text:"5.8.2 — Explain paper chromatography and calculate Rf values"},
+    {id:"5.8.3",text:"5.8.3 — Describe tests for hydrogen, oxygen, carbon dioxide and chlorine"},
+    {id:"5.8.4",text:"5.8.4 — Describe flame tests and tests for common ions [HT]"},
+    {id:"5.9.1",text:"5.9.1 — Describe the evolution of the Earth's atmosphere and current composition"},
+    {id:"5.9.2",text:"5.9.2 — Explain the greenhouse effect and named greenhouse gases"},
+    {id:"5.9.3",text:"5.9.3 — Evaluate the evidence for and impact of climate change"},
+    {id:"5.9.4",text:"5.9.4 — Describe atmospheric pollutants and their sources"},
+    {id:"5.10.1",text:"5.10.1 — Distinguish between finite and renewable resources"},
+    {id:"5.10.2",text:"5.10.2 — Describe water treatment (filtration, sedimentation, chlorination)"},
+    {id:"5.10.3",text:"5.10.3 — Explain the Haber process and conditions used; describe NPK fertilisers"},
+    {id:"5.10.4",text:"5.10.4 — Describe and evaluate a life cycle assessment (LCA)"},
+    {id:"5.10.5",text:"5.10.5 — Compare properties and uses of ceramics, polymers and composites"},
+    {id:"5.10.6",text:"5.10.6 — Describe corrosion and methods of prevention"}
+  ],
+  phys: [
+    {id:"6.1.1",text:"6.1.1 — Describe the different energy stores and energy transfer pathways"},
+    {id:"6.1.2a",text:"6.1.2 — Calculate kinetic energy (Ek = ½mv²)"},
+    {id:"6.1.2b",text:"6.1.2 — Calculate gravitational potential energy (Ep = mgh)"},
+    {id:"6.1.2c",text:"6.1.2 — Apply conservation of energy to problems"},
+    {id:"6.1.3",text:"6.1.3 — Define specific heat capacity; calculate energy changes (E = mcΔT)"},
+    {id:"6.1.4",text:"6.1.4 — Explain dissipation of energy and ways to reduce unwanted energy transfers"},
+    {id:"6.1.5",text:"6.1.5 — Describe renewable and non-renewable energy resources and their uses"},
+    {id:"6.1.6",text:"6.1.6 — Evaluate the use of different energy resources; describe trends in energy use"},
+    {id:"6.2.1",text:"6.2.1 — Draw and interpret circuit diagrams using standard symbols"},
+    {id:"6.2.2a",text:"6.2.2 — Define current, potential difference and resistance; state Ohm's law (V=IR)"},
+    {id:"6.2.2b",text:"6.2.2 — Describe how to measure current and potential difference in a circuit"},
+    {id:"6.2.3a",text:"6.2.3 — Describe the I-V characteristics of an ohmic conductor, filament lamp and diode"},
+    {id:"6.2.3b",text:"6.2.3 — Describe how LDRs and thermistors work and their uses"},
+    {id:"6.2.4a",text:"6.2.4 — Calculate current, voltage and resistance in series circuits"},
+    {id:"6.2.4b",text:"6.2.4 — Calculate current, voltage and resistance in parallel circuits"},
+    {id:"6.2.5",text:"6.2.5 — Describe mains electricity: AC vs DC, UK frequency (50Hz) and voltage (230V)"},
+    {id:"6.2.6a",text:"6.2.6 — Calculate electrical power (P = IV and P = I²R)"},
+    {id:"6.2.6b",text:"6.2.6 — Calculate energy transferred (E = Pt and E = QV)"},
+    {id:"6.2.7",text:"6.2.7 — Explain the National Grid and the role of transformers"},
+    {id:"6.2.8",text:"6.2.8 — Explain static electricity: charging by friction, electric fields, sparks"},
+    {id:"6.3.1",text:"6.3.1 — Define density; calculate density (ρ = m/V)"},
+    {id:"6.3.2a",text:"6.3.2 — Describe changes of state and explain using particle model"},
+    {id:"6.3.2b",text:"6.3.2 — Define specific latent heat; calculate energy for changes of state (E = mL)"},
+    {id:"6.3.3",text:"6.3.3 — Explain gas pressure using particle model"},
+    {id:"6.4.1a",text:"6.4.1 — Describe the structure of the atom; define atomic number and mass number"},
+    {id:"6.4.1b",text:"6.4.1 — Define isotopes and explain why they exist"},
+    {id:"6.4.2a",text:"6.4.2 — Describe alpha, beta and gamma radiation (nature, charge, mass, penetration, ionisation)"},
+    {id:"6.4.2b",text:"6.4.2 — Write nuclear equations for alpha and beta decay [HT]"},
+    {id:"6.4.3",text:"6.4.3 — Define activity and half-life; perform half-life calculations"},
+    {id:"6.4.4",text:"6.4.4 — Describe uses of radiation and associated hazards"},
+    {id:"6.4.5",text:"6.4.5 — Describe nuclear fission and fusion; explain the difference and energy released"},
+    {id:"6.5.1",text:"6.5.1 — Distinguish between scalar and vector quantities; give examples"},
+    {id:"6.5.2",text:"6.5.2 — Distinguish between contact and non-contact forces; give examples"},
+    {id:"6.5.3",text:"6.5.3 — Define weight; calculate weight (W = mg)"},
+    {id:"6.5.4",text:"6.5.4 — Calculate resultant forces; explain the effect on motion"},
+    {id:"6.5.5",text:"6.5.5 — Calculate work done (W = Fs)"},
+    {id:"6.5.6",text:"6.5.6 — Describe Hooke's law; calculate spring extension (F = ke)"},
+    {id:"6.5.7",text:"6.5.7 — Calculate moments (M = Fd); explain levers and gears"},
+    {id:"6.5.8",text:"6.5.8 — Calculate pressure in fluids (p = F/A and p = hρg) [HT]"},
+    {id:"6.5.9",text:"6.5.9 — Draw and interpret distance-time graphs; calculate speed"},
+    {id:"6.5.10a",text:"6.5.10 — Draw and interpret velocity-time graphs; calculate acceleration"},
+    {id:"6.5.10b",text:"6.5.10 — Calculate distance from area under a velocity-time graph"},
+    {id:"6.5.11a",text:"6.5.11 — State and explain Newton's First Law"},
+    {id:"6.5.11b",text:"6.5.11 — State and apply Newton's Second Law (F = ma)"},
+    {id:"6.5.11c",text:"6.5.11 — State and explain Newton's Third Law with examples"},
+    {id:"6.5.12",text:"6.5.12 — Define thinking, braking and stopping distance; explain factors affecting each"},
+    {id:"6.5.13",text:"6.5.13 — Define momentum (p = mv); apply conservation of momentum [HT]"},
+    {id:"6.6.1a",text:"6.6.1 — Distinguish between transverse and longitudinal waves with examples"},
+    {id:"6.6.1b",text:"6.6.1 — Define amplitude, frequency, wavelength and wave speed; use v = fλ"},
+    {id:"6.6.2",text:"6.6.2 — Describe reflection and refraction of waves"},
+    {id:"6.6.3",text:"6.6.3 — Describe sound waves; explain how sound travels and how we hear"},
+    {id:"6.6.4",text:"6.6.4 — Describe the electromagnetic spectrum in order"},
+    {id:"6.6.5",text:"6.6.5 — Describe the uses and hazards of each part of the electromagnetic spectrum"},
+    {id:"6.7.1",text:"6.7.1 — Describe permanent and induced magnets; draw magnetic field patterns"},
+    {id:"6.7.2",text:"6.7.2 — Explain the motor effect; calculate force on a conductor (F = BIL) [HT]"},
+    {id:"6.7.3",text:"6.7.3 — Describe electromagnetic induction and how a generator works"},
+    {id:"6.7.4",text:"6.7.4 — Explain how a transformer works; calculate output voltage (Vp/Vs = np/ns) [HT]"}
+  ]
+};
+
+let curSubj='bio';
+let S={classes:{},cur:null,topics:[],quiz:[],lastSettings:{}};
+try{const r=localStorage.getItem('aqaqz_v6');if(r)S=JSON.parse(r);}catch(e){}
+function save(){try{localStorage.setItem('aqaqz_v6',JSON.stringify(S));}catch(e){}}
+function subjOf(id){return id.startsWith('4')?'bio':id.startsWith('5')?'chem':'phys';}
+
+function boot(){renderTopicList();renderClsSel();renderTags();renderHist();renderRev();}
+
+function switchSubj(subj,el){
+  curSubj=subj;
+  document.querySelectorAll('.subj-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('topic-search').value='';
+  renderTopicList();
+}
+
+function renderTopicList(){
+  const q=(document.getElementById('topic-search').value||'').toLowerCase();
+  const list=document.getElementById('topic-list');
+  const items=TOPICS[curSubj].filter(t=>!q||t.text.toLowerCase().includes(q));
+  if(!items.length){list.innerHTML='<div class="no-results">No spec points match your search</div>';return;}
+  list.innerHTML=items.map(t=>{
+    const added=S.topics.includes(t.id);
+    return `<div class="topic-item${added?' added':''}">
+      <span>${t.text}</span>
+      <button class="add-btn" onclick="addTopic('${t.id}')" ${added?'disabled':''}>+ Add</button>
+    </div>`;
+  }).join('');
+}
+
+function addTopic(id){
+  if(S.topics.includes(id))return;
+  S.topics.push(id);
+  if(S.cur&&S.classes[S.cur]){S.classes[S.cur].topics=S.topics;save();}
+  renderTags();renderTopicList();
+}
+
+function removeTopic(id){
+  S.topics=S.topics.filter(x=>x!==id);
+  if(S.cur&&S.classes[S.cur]){S.classes[S.cur].topics=S.topics;save();}
+  renderTags();renderTopicList();
+}
+
+function getTopicText(id){
+  for(const subj of Object.values(TOPICS)){
+    const found=subj.find(t=>t.id===id);
+    if(found)return found.text;
+  }
+  return id;
+}
+
+function renderTags(){
+  const w=document.getElementById('tags-wrap');
+  const cnt=document.getElementById('topics-count');
+  cnt.textContent=S.topics.length?`(${S.topics.length})`:'';
+  if(!S.topics.length){w.innerHTML='<span class="empty">No spec points added yet</span>';return;}
+  w.innerHTML=S.topics.map(id=>`<span class="tag ${subjOf(id)}">${getTopicText(id)} <span style="cursor:pointer;margin-left:2px" onclick="removeTopic('${id}')">×</span></span>`).join('');
+}
+
+function renderClsSel(){
+  const sel=document.getElementById('cls-sel');
+  const cls=Object.keys(S.classes);
+  sel.innerHTML='<option value="">— select class —</option>'+cls.map(c=>`<option${S.cur===c?' selected':''}>${c}</option>`).join('');
+}
+
+function addClass(){
+  const inp=document.getElementById('cls-new');
+  const n=inp.value.trim();if(!n)return;
+  if(!S.classes[n])S.classes[n]={topics:[],history:[],flagged:[]};
+  inp.value='';S.cur=n;S.topics=[...S.classes[n].topics];
+  renderClsSel();renderTags();renderTopicList();save();
+}
+
+function switchClass(){
+  S.cur=document.getElementById('cls-sel').value||null;
+  S.topics=S.cur&&S.classes[S.cur]?[...S.classes[S.cur].topics]:[];
+  renderTags();renderTopicList();renderHist();renderRev();
+}
+
+function renderHist(){
+  const el=document.getElementById('hist-body');
+  if(!S.cur||!S.classes[S.cur]){el.innerHTML='<span class="empty">Select a class to see history.</span>';return;}
+  const h=S.classes[S.cur].history||[];
+  if(!h.length){el.innerHTML=`<span class="empty">No quizzes run yet for ${S.cur}.</span>`;return;}
+  el.innerHTML=h.slice().reverse().map(r=>`
+    <div class="q-block" style="font-size:13px">
+      <div style="color:#888;font-size:11px;margin-bottom:3px">${new Date(r.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="font-weight:500">${r.n} questions · ${r.tier} tier</div>
+      ${r.low&&r.low.length?`<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${r.low.map(q=>`<span class="badge badge-low">⚑ ${q}</span>`).join('')}</div>`:''}
+    </div>`).join('');
+}
+
+function renderRev(){
+  const el=document.getElementById('rev-body');
+  if(!S.cur||!S.classes[S.cur]){el.innerHTML='<span class="empty">Select a class.</span>';return;}
+  const fl=S.classes[S.cur].flagged||[];
+  if(!fl.length){el.innerHTML='<span class="empty">No questions flagged for review yet.</span>';return;}
+  el.innerHTML=fl.map((f,i)=>`
+    <div class="q-block">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div style="font-size:11px;color:#888;margin-bottom:3px">${f.topic} · ${new Date(f.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
+          <div style="font-size:13px;margin-bottom:5px">${f.q}</div>
+          <span class="badge badge-low">${f.pct}% correct</span>
+        </div>
+        <button class="btn btn-sm" onclick="dismissFlag(${i})">Dismiss</button>
+      </div>
+    </div>`).join('');
+}
+
+function dismissFlag(i){
+  if(S.cur&&S.classes[S.cur]){S.classes[S.cur].flagged.splice(i,1);save();renderRev();}
+}
+
+function showTab(t){
+  ['build','history','review'].forEach(x=>{
+    document.getElementById('pane-'+x).style.display=x===t?'block':'none';
+    document.getElementById('tb-'+x).classList.toggle('on',x===t);
+  });
+  if(t==='history')renderHist();
+  if(t==='review')renderRev();
+}
+
+async function generate(){
+  if(!S.topics.length){alert('Add at least one spec point first.');return;}
+  const btn=document.getElementById('gen-btn');
+  btn.innerHTML='<span class="spinner"></span> Generating…';
+  btn.disabled=true;
+  document.getElementById('gen-err').innerHTML='';
+
+  const tier=document.getElementById('tier').value;
+  const total=Math.max(1,parseInt(document.getElementById('q-total').value)||5);
+  const mc=Math.min(parseInt(document.getElementById('q-mc').value)||0,total);
+  const incFlag=document.getElementById('inc-flag').value==='1';
+  S.lastSettings={tier,total,mc,cls:S.cur};save();
+
+  const flagged=incFlag&&S.cur&&S.classes[S.cur]?(S.classes[S.cur].flagged||[]).slice(0,3):[];
+  const topicObjs=S.topics.map(id=>({id,text:getTopicText(id)}));
+
+  try{
+    const resp=await fetch('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({topics:topicObjs,tier,total,mc,flagged})
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||`HTTP ${resp.status}`);}
+    const data=await resp.json();
+    S.quiz=data.questions||[];
+    if(!S.quiz.length)throw new Error('No questions returned');
+    if(S.cur&&S.classes[S.cur]){
+      S.classes[S.cur].history=S.classes[S.cur].history||[];
+      S.classes[S.cur].history.push({date:new Date().toISOString(),tier,n:S.quiz.length,low:[]});
+      save();
+    }
+    renderQuiz();
+  }catch(e){
+    document.getElementById('gen-err').innerHTML=`<div class="err">Error: ${e.message}</div>`;
+  }
+  btn.innerHTML='&#9654; Generate quiz';
+  btn.disabled=false;
+}
+
+function renderQuiz(){
+  const out=document.getElementById('quiz-out');
+  const ls=S.lastSettings||{};
+  out.innerHTML=`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:15px;font-weight:500">Today's quiz ${ls.cls?`<span class="badge badge-blue" style="margin-left:6px">${ls.cls}</span>`:''} <span class="badge" style="background:#f0f0f0;color:#666;margin-left:4px">${ls.tier||''}</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-copy" onclick="copyForDoc()">&#128203; Copy for document</button>
+        <button class="btn btn-sm" onclick="saveResults()">&#128190; Save results</button>
+      </div>
+    </div>
+    ${S.quiz.map((q,i)=>qHtml(q,i)).join('')}
+  </div>`;
+}
+
+function qHtml(q,i){
+  const isMC=q.type==='mc';
+  const specRef=q.spec_id?`<span style="font-family:monospace;background:#f0f0f0;padding:1px 5px;border-radius:4px;margin-left:4px">${q.spec_id}</span>`:'';
+  return `<div class="q-block" id="qb-${i}">
+    <div class="q-meta">Q${i+1} · ${q.topic||''} ${specRef} · ${isMC?'multiple choice':'short answer'}</div>
+    <div class="q-text">${q.question}</div>
+    ${isMC?`<div class="mc-options" id="mc-${i}">${(q.options||[]).map((o,j)=>`<div class="mc-opt" onclick="pickMC(${i},${j},'${(q.answer||'').replace(/'/g,"\\'")}' )">${o}</div>`).join('')}</div>`
+    :`<button class="btn btn-sm" onclick="showAns(${i})">Show model answer</button>`}
+    <div class="ans-box" id="ans-${i}"><div class="ans-lbl">Model answer (AQA spec · ${q.spec_id||''})</div><div style="font-size:13px;line-height:1.5">${q.model_answer||''}</div></div>
+    <div class="pct-row">
+      % correct:
+      <input type="number" class="pct-input" id="pct-${i}" min="0" max="100" placeholder="%"
+        oninput="checkPct(${i},'${(q.question||'').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}','${(q.topic||'').replace(/'/g,"\\'")}')">
+      <span id="pctb-${i}"></span>
+    </div>
+  </div>`;
+}
+
+function pickMC(qi,optIdx,correct){
+  const letters=['A','B','C','D'];
+  document.querySelectorAll(`#mc-${qi} .mc-opt`).forEach((o,j)=>{
+    o.classList.remove('correct','wrong');
+    if(letters[j]===correct)o.classList.add('correct');
+    else if(j===optIdx)o.classList.add('wrong');
+  });
+  showAns(qi);
+}
+
+function showAns(i){document.getElementById('ans-'+i).classList.add('show');}
+
+function checkPct(i,question,topic){
+  const v=parseInt(document.getElementById('pct-'+i).value);
+  const b=document.getElementById('pctb-'+i);
+  if(isNaN(v)){b.innerHTML='';return;}
+  b.innerHTML=v<60?'<span class="badge badge-low">⚑ Flag for review</span>':'<span class="badge badge-ok">✓ Good</span>';
+}
+
+function copyForDoc(){
+  const ls=S.lastSettings||{};
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  let out=`AQA GCSE Combined Science — Retrieval Quiz\n`;
+  out+=`${ls.cls?`Class: ${ls.cls}  |  `:''}${ls.tier||''} Tier  |  ${date}\n`;
+  out+=`${'─'.repeat(60)}\n\n`;
+  S.quiz.forEach((q,i)=>{
+    out+=`Q${i+1}. [${q.topic}${q.spec_id?' · '+q.spec_id:''}]\n${q.question}\n`;
+    if(q.type==='mc'&&q.options){q.options.forEach(o=>out+=`   ${o}\n`);}
+    out+=`\n`;
+  });
+  out+=`${'─'.repeat(60)}\nMODEL ANSWERS\n${'─'.repeat(60)}\n\n`;
+  S.quiz.forEach((q,i)=>{out+=`Q${i+1}. ${q.model_answer}\n\n`;});
+  navigator.clipboard.writeText(out).then(()=>alert('Copied! Paste into Word or Google Docs.')).catch(()=>alert('Copy failed.'));
+}
+
+function saveResults(){
+  const ls=S.lastSettings||{};
+  if(!ls.cls||!S.classes[ls.cls]){alert('No class selected.');return;}
+  const cl=S.classes[ls.cls];
+  cl.flagged=cl.flagged||[];
+  const hist=cl.history;const latest=hist&&hist[hist.length-1];
+  S.quiz.forEach((q,i)=>{
+    const v=parseInt(document.getElementById('pct-'+i).value);
+    if(!isNaN(v)&&v<60){
+      cl.flagged.push({q:q.question,topic:q.topic,pct:v,date:new Date().toISOString()});
+      if(latest){latest.low=latest.low||[];latest.low.push(q.topic);}
+    }
+  });
+  save();
+  alert('Saved! Low-scoring questions flagged for review.');
+  renderRev();
+}
+
+boot();
+</script>
+</body>
+</html>
