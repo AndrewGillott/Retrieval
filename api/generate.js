@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY
-);
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,14 +6,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // Verify user is logged in
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'Not authenticated' });
-    
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ error: 'Invalid session' });
-
     const { topics, tier, total, mc, flagged, class_id } = req.body;
 
     let flagCtx = '';
@@ -72,17 +57,6 @@ Return this exact JSON structure:
     let txt = data.content.filter(c => c.type === 'text').map(c => c.text).join('');
     txt = txt.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(txt);
-
-    // Save quiz to database
-    if (class_id) {
-      await supabase.from('quiz_history').insert({
-        class_id,
-        questions: parsed.questions,
-        tier,
-        quiz_type: 'classwork'
-      });
-    }
-
     return res.status(200).json(parsed);
 
   } catch (e) {
