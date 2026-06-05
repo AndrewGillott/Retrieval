@@ -8,7 +8,6 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a}
-.page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
 .app{max-width:880px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem;padding:2rem 0}
 .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem}
 .slabel{font-size:12px;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
@@ -68,25 +67,21 @@ input[type=search]{margin-bottom:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .err{font-size:13px;color:#A32D2D;padding:8px 10px;background:#FCEBEB;border-radius:8px;margin-top:8px}
 .success{font-size:13px;color:#3B6D11;padding:8px 10px;background:#EAF3DE;border-radius:8px;margin-top:8px}
-.logo{font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#1a1a1a}
-.logo span{color:#4F46E5}
 .no-results{font-size:13px;color:#aaa;padding:12px 8px;text-align:center}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
 .stat-box{background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:12px;text-align:center}
 .stat-val{font-size:24px;font-weight:600;color:#1a1a1a}
 .stat-lbl{font-size:11px;color:#888;margin-top:2px}
-.spec-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
-.spec-bar-bg{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
-.spec-bar-fill{height:100%;border-radius:4px;background:#4F46E5}
+.spec-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+.spec-bar-bg{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;min-width:80px}
+.spec-bar-fill{height:100%;border-radius:4px}
 .spec-bar-fill.low{background:#A32D2D}
-.spec-bar-fill.mid{background:#854F0B}
+.spec-bar-fill.mid{background:#e07b00}
 .spec-bar-fill.high{background:#3B6D11}
-.navbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:10}
+.navbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:10}
 .nav-logo{font-size:18px;font-weight:700;letter-spacing:-0.5px}
 .nav-logo span{color:#4F46E5}
-.nav-user{font-size:13px;color:#888;display:flex;align-items:center;gap:12px}
-
-/* Auth screens */
+.nav-user{font-size:13px;color:#888;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f5;padding:2rem}
 .auth-box{background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:2rem;width:100%;max-width:400px}
 .auth-box h2{font-size:20px;font-weight:600;margin-bottom:4px}
@@ -95,6 +90,8 @@ input[type=search]{margin-bottom:8px}
 .form-group label{font-size:12px;font-weight:500;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .auth-switch{font-size:13px;color:#888;text-align:center;margin-top:1rem}
 .auth-switch a{color:#4F46E5;cursor:pointer;text-decoration:none}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:50;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto}
+.modal-box{background:#fff;border-radius:16px;padding:2rem;max-width:500px;width:100%;margin:auto}
 </style>
 </head>
 <body>
@@ -102,20 +99,14 @@ input[type=search]{margin-bottom:8px}
 <div id="auth-screen" class="auth-wrap">
   <div class="auth-box">
     <div style="margin-bottom:1.5rem">
-      <div class="logo">Retri<span>eval</span></div>
+      <div style="font-size:24px;font-weight:700;letter-spacing:-0.5px">Retri<span style="color:#4F46E5">eval</span></div>
       <div style="font-size:13px;color:#888;margin-top:4px">AQA GCSE Science · Evidence-based retrieval practice</div>
     </div>
     <div id="login-form">
       <h2>Sign in</h2>
       <p>Welcome back. Enter your details below.</p>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="login-email" placeholder="you@school.ac.uk">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="login-password" placeholder="••••••••">
-      </div>
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@school.ac.uk"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
       <button class="btn btn-primary btn-full" onclick="login()" style="margin-top:8px">Sign in</button>
       <div id="login-err"></div>
       <div class="auth-switch">Don't have an account? <a onclick="showSignup()">Sign up free</a></div>
@@ -123,22 +114,10 @@ input[type=search]{margin-bottom:8px}
     <div id="signup-form" style="display:none">
       <h2>Create account</h2>
       <p>Free to get started. No credit card required.</p>
-      <div class="form-group">
-        <label>Full name</label>
-        <input type="text" id="signup-name" placeholder="Your name">
-      </div>
-      <div class="form-group">
-        <label>School</label>
-        <input type="text" id="signup-school" placeholder="School name">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="signup-email" placeholder="you@school.ac.uk">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="signup-password" placeholder="Min 8 characters">
-      </div>
+      <div class="form-group"><label>Full name</label><input type="text" id="signup-name" placeholder="Your name"></div>
+      <div class="form-group"><label>School</label><input type="text" id="signup-school" placeholder="School name"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@school.ac.uk"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="signup-password" placeholder="Min 8 characters"></div>
       <button class="btn btn-primary btn-full" onclick="signup()" style="margin-top:8px">Create account</button>
       <div id="signup-err"></div>
       <div class="auth-switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
@@ -150,7 +129,8 @@ input[type=search]{margin-bottom:8px}
   <div class="navbar">
     <div class="nav-logo">Retri<span>eval</span></div>
     <div class="nav-user">
-      <span id="nav-email"></span>
+      <span id="nav-email" style="font-size:12px"></span>
+      <button class="btn btn-sm" onclick="showProfile()">&#9881; Profile</button>
       <button class="btn btn-sm" onclick="signOut()">Sign out</button>
     </div>
   </div>
@@ -164,7 +144,6 @@ input[type=search]{margin-bottom:8px}
         <button class="tab" id="tb-history" onclick="showTab('history')">History</button>
       </div>
 
-      <!-- QUIZ BUILDER -->
       <div id="pane-build">
         <div class="slabel">Class</div>
         <div class="row" style="margin-bottom:14px">
@@ -201,38 +180,59 @@ input[type=search]{margin-bottom:8px}
           <div><div style="font-size:12px;color:#666;margin-bottom:4px">Include flagged</div>
             <select id="inc-flag" style="width:90px;flex:none"><option value="1">Yes</option><option value="0">No</option></select></div>
         </div>
-
         <button class="btn btn-primary" id="gen-btn" onclick="generate()">&#9654; Generate quiz</button>
         <div id="gen-err"></div>
       </div>
 
-      <!-- STATS -->
-      <div id="pane-stats" style="display:none">
-        <div id="stats-body"><span class="empty">Select a class to see stats.</span></div>
-      </div>
-
-      <!-- REVIEW -->
-      <div id="pane-review" style="display:none">
-        <div id="rev-body"><span class="empty">No questions flagged yet.</span></div>
-      </div>
-
-      <!-- HISTORY -->
-      <div id="pane-history" style="display:none">
-        <div id="hist-body"><span class="empty">Select a class to see history.</span></div>
-      </div>
+      <div id="pane-stats" style="display:none"><div id="stats-body"><span class="empty">Select a class to see stats.</span></div></div>
+      <div id="pane-review" style="display:none"><div id="rev-body"><span class="empty">No questions flagged yet.</span></div></div>
+      <div id="pane-history" style="display:none"><div id="hist-body"><span class="empty">Select a class to see history.</span></div></div>
     </div>
-
     <div id="quiz-out"></div>
   </div>
 </div>
 
+<!-- Profile modal -->
+<div id="profile-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <h2 style="font-size:18px;font-weight:600">Your profile</h2>
+      <button class="btn btn-sm" onclick="closeProfile()">&#10005; Close</button>
+    </div>
+    <div class="slabel">Account</div>
+    <div class="q-block" style="margin-bottom:14px">
+      <div style="font-size:13px;color:#888;margin-bottom:10px" id="profile-email-display"></div>
+      <div style="margin-bottom:8px"><label style="font-size:12px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Display name</label>
+        <input type="text" id="profile-name" placeholder="Your name"></div>
+      <div style="margin-bottom:10px"><label style="font-size:12px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">School</label>
+        <input type="text" id="profile-school" placeholder="School name"></div>
+      <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save changes</button>
+      <div id="profile-msg"></div>
+    </div>
+    <div class="slabel">Change password</div>
+    <div class="q-block" style="margin-bottom:14px">
+      <div style="margin-bottom:8px"><label style="font-size:12px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">New password</label>
+        <input type="password" id="new-password" placeholder="Min 8 characters"></div>
+      <div style="margin-bottom:10px"><label style="font-size:12px;color:#666;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Confirm new password</label>
+        <input type="password" id="confirm-password" placeholder="Repeat new password"></div>
+      <button class="btn btn-primary btn-sm" onclick="changePassword()">Update password</button>
+      <div id="password-msg"></div>
+    </div>
+    <div class="slabel">Your classes</div>
+    <div id="profile-classes"></div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <input type="text" id="profile-new-class" placeholder="New class name…" style="flex:1">
+      <button class="btn btn-sm btn-primary" onclick="profileAddClass()">+ Add</button>
+    </div>
+    <div id="profile-class-msg"></div>
+  </div>
+</div>
+
 <script>
-// ── Supabase config ──────────────────────────────────────────────
 const SUPA_URL = 'https://paahfebuknbpgggffhxv.supabase.co';
 const SUPA_KEY = 'sb_publishable_BPrQiDZn2iJusAYB3uZFbA_vCwe66qT';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ── Topic data ───────────────────────────────────────────────────
 const TOPICS = {
   bio: [
     {id:"4.1.1a",text:"4.1.1 — Describe the structure of eukaryotic cells (animal and plant)"},
@@ -439,241 +439,208 @@ const TOPICS = {
   ]
 };
 
-// ── App state ────────────────────────────────────────────────────
-let user = null;
-let session = null;
-let classes = [];
-let curClass = null;
-let curSubj = 'bio';
-let quiz = [];
-let lastSettings = {};
+let user=null, session=null, classes=[], curClass=null, curSubj='bio', quiz=[], lastSettings={};
 
-// ── Auth ─────────────────────────────────────────────────────────
-async function login() {
-  const email = document.getElementById('login-email').value.trim();
-  const pw = document.getElementById('login-password').value;
-  const {data, error} = await sb.auth.signInWithPassword({email, password: pw});
-  if (error) { showErr('login-err', error.message); return; }
-  session = data.session; user = data.user;
-  await bootApp();
+async function login(){
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-password').value;
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  if(error){showErr('login-err',error.message);return;}
+  session=data.session;user=data.user;await bootApp();
 }
 
-async function signup() {
-  const name = document.getElementById('signup-name').value.trim();
-  const school = document.getElementById('signup-school').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const pw = document.getElementById('signup-password').value;
-  if (!name || !email || !pw) { showErr('signup-err', 'Please fill in all fields'); return; }
-  const {data, error} = await sb.auth.signUp({email, password: pw, options: {data: {full_name: name, school}}});
-  if (error) { showErr('signup-err', error.message); return; }
-  showErr('signup-err', 'Check your email to confirm your account, then sign in.', true);
+async function signup(){
+  const name=document.getElementById('signup-name').value.trim();
+  const school=document.getElementById('signup-school').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const pw=document.getElementById('signup-password').value;
+  if(!name||!email||!pw){showErr('signup-err','Please fill in all fields');return;}
+  const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name,school}}});
+  if(error){showErr('signup-err',error.message);return;}
+  showErr('signup-err','Check your email to confirm your account, then sign in.',true);
 }
 
-async function signOut() {
+async function signOut(){
   await sb.auth.signOut();
-  user = null; session = null; classes = []; curClass = null;
-  document.getElementById('main-app').style.display = 'none';
-  document.getElementById('auth-screen').style.display = 'flex';
+  user=null;session=null;classes=[];curClass=null;
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
 }
 
-function showLogin() {
-  document.getElementById('login-form').style.display = 'block';
-  document.getElementById('signup-form').style.display = 'none';
-}
+function showLogin(){document.getElementById('login-form').style.display='block';document.getElementById('signup-form').style.display='none';}
+function showSignup(){document.getElementById('login-form').style.display='none';document.getElementById('signup-form').style.display='block';}
+function showErr(id,msg,isSuccess){document.getElementById(id).innerHTML=`<div class="${isSuccess?'success':'err'}">${msg}</div>`;}
 
-function showSignup() {
-  document.getElementById('login-form').style.display = 'none';
-  document.getElementById('signup-form').style.display = 'block';
-}
-
-function showErr(id, msg, isSuccess) {
-  const el = document.getElementById(id);
-  el.innerHTML = `<div class="${isSuccess ? 'success' : 'err'}">${msg}</div>`;
-}
-
-// ── Boot ─────────────────────────────────────────────────────────
-async function bootApp() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
-  document.getElementById('nav-email').textContent = user.email;
+async function bootApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.getElementById('nav-email').textContent=user.email;
   await loadClasses();
-  renderClsSel();
-  renderTopicList();
-  renderTags();
+  renderClsSel();renderTopicList();renderTags();
 }
 
-async function init() {
-  const {data: {session: s}} = await sb.auth.getSession();
-  if (s) { session = s; user = s.user; await bootApp(); }
+async function init(){
+  const {data:{session:s}}=await sb.auth.getSession();
+  if(s){session=s;user=s.user;await bootApp();}
 }
 
-// ── Classes ───────────────────────────────────────────────────────
-async function loadClasses() {
-  const {data, error} = await sb
-    .from('classes')
+async function loadClasses(){
+  const {data,error}=await sb.from('classes')
     .select('*, taught_topics(*), flagged_questions(*), quiz_history(*)')
-    .eq('teacher_id', user.id)
-    .order('created_at', {ascending: true});
-  if (!error) classes = data || [];
+    .eq('teacher_id',user.id).order('created_at',{ascending:true});
+  if(!error)classes=data||[];
 }
 
-function renderClsSel() {
-  const sel = document.getElementById('cls-sel');
-  sel.innerHTML = '<option value="">— select class —</option>' +
-    classes.map(c => `<option value="${c.id}"${curClass && curClass.id === c.id ? ' selected' : ''}>${c.name}</option>`).join('');
+function renderClsSel(){
+  const sel=document.getElementById('cls-sel');
+  sel.innerHTML='<option value="">— select class —</option>'+
+    classes.map(c=>`<option value="${c.id}"${curClass&&curClass.id===c.id?' selected':''}>${c.name}</option>`).join('');
 }
 
-async function addClass() {
-  const inp = document.getElementById('cls-new');
-  const n = inp.value.trim(); if (!n) return;
-  const {data, error} = await sb.from('classes').insert({name: n, tier: 'Higher', teacher_id: user.id}).select().single();
-  if (error) { alert('Error creating class: ' + error.message); return; }
-  inp.value = '';
-  classes.push({...data, taught_topics: [], flagged_questions: [], quiz_history: []});
-  curClass = classes[classes.length - 1];
-  renderClsSel();
-  renderTags();
-  renderTopicList();
+async function addClass(){
+  const inp=document.getElementById('cls-new');
+  const n=inp.value.trim();if(!n)return;
+  const {data,error}=await sb.from('classes').insert({name:n,tier:'Higher',teacher_id:user.id}).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  inp.value='';
+  classes.push({...data,taught_topics:[],flagged_questions:[],quiz_history:[]});
+  curClass=classes[classes.length-1];
+  renderClsSel();renderTags();renderTopicList();
 }
 
-async function switchClass() {
-  const id = document.getElementById('cls-sel').value;
-  curClass = classes.find(c => c.id === id) || null;
-  renderTags();
-  renderTopicList();
-  renderStats();
-  renderRev();
-  renderHist();
+async function switchClass(){
+  const id=document.getElementById('cls-sel').value;
+  curClass=classes.find(c=>c.id===id)||null;
+  renderTags();renderTopicList();renderStats();renderRev();renderHist();
 }
 
-// ── Topics ────────────────────────────────────────────────────────
-function switchSubj(subj, el) {
-  curSubj = subj;
-  document.querySelectorAll('.subj-tab').forEach(t => t.classList.remove('on'));
+function switchSubj(subj,el){
+  curSubj=subj;
+  document.querySelectorAll('.subj-tab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
-  document.getElementById('topic-search').value = '';
+  document.getElementById('topic-search').value='';
   renderTopicList();
 }
 
-function renderTopicList() {
-  const q = (document.getElementById('topic-search').value || '').toLowerCase();
-  const list = document.getElementById('topic-list');
-  const addedIds = curClass ? (curClass.taught_topics || []).map(t => t.spec_id) : [];
-  const items = TOPICS[curSubj].filter(t => !q || t.text.toLowerCase().includes(q));
-  if (!items.length) { list.innerHTML = '<div class="no-results">No spec points match</div>'; return; }
-  list.innerHTML = items.map(t => {
-    const added = addedIds.includes(t.id);
-    return `<div class="topic-item${added ? ' added' : ''}">
-      <span>${t.text}</span>
-      <button class="add-btn" onclick="addTopic('${t.id}')" ${added ? 'disabled' : ''}>+ Add</button>
-    </div>`;
+function renderTopicList(){
+  const q=(document.getElementById('topic-search').value||'').toLowerCase();
+  const list=document.getElementById('topic-list');
+  const addedIds=curClass?(curClass.taught_topics||[]).map(t=>t.spec_id):[];
+  const items=TOPICS[curSubj].filter(t=>!q||t.text.toLowerCase().includes(q));
+  if(!items.length){list.innerHTML='<div class="no-results">No spec points match</div>';return;}
+  list.innerHTML=items.map(t=>{
+    const added=addedIds.includes(t.id);
+    return `<div class="topic-item${added?' added':''}"><span>${t.text}</span>
+      <button class="add-btn" onclick="addTopic('${t.id}')" ${added?'disabled':''}>+ Add</button></div>`;
   }).join('');
 }
 
-async function addTopic(id) {
-  if (!curClass) { alert('Select a class first'); return; }
-  const already = (curClass.taught_topics || []).find(t => t.spec_id === id);
-  if (already) return;
-  const topicObj = getTopicById(id);
-  const {data, error} = await sb.from('taught_topics').insert({
-    class_id: curClass.id, spec_id: id, spec_text: topicObj.text,
-    taught_date: new Date().toISOString().split('T')[0]
+async function addTopic(id){
+  if(!curClass){alert('Select a class first');return;}
+  if((curClass.taught_topics||[]).find(t=>t.spec_id===id))return;
+  const topicObj=getTopicById(id);
+  const {data,error}=await sb.from('taught_topics').insert({
+    class_id:curClass.id,spec_id:id,spec_text:topicObj.text,
+    taught_date:new Date().toISOString().split('T')[0]
   }).select().single();
-  if (error) { alert('Error: ' + error.message); return; }
-  curClass.taught_topics = curClass.taught_topics || [];
+  if(error){alert('Error: '+error.message);return;}
+  curClass.taught_topics=curClass.taught_topics||[];
   curClass.taught_topics.push(data);
-  renderTags();
-  renderTopicList();
+  renderTags();renderTopicList();
 }
 
-async function removeTopic(id) {
-  if (!curClass) return;
-  await sb.from('taught_topics').delete().eq('class_id', curClass.id).eq('spec_id', id);
-  curClass.taught_topics = (curClass.taught_topics || []).filter(t => t.spec_id !== id);
-  renderTags();
-  renderTopicList();
+async function removeTopic(id){
+  if(!curClass)return;
+  await sb.from('taught_topics').delete().eq('class_id',curClass.id).eq('spec_id',id);
+  curClass.taught_topics=(curClass.taught_topics||[]).filter(t=>t.spec_id!==id);
+  renderTags();renderTopicList();
 }
 
-function getTopicById(id) {
-  for (const subj of Object.values(TOPICS)) {
-    const found = subj.find(t => t.id === id);
-    if (found) return found;
-  }
-  return {id, text: id};
+function getTopicById(id){
+  for(const subj of Object.values(TOPICS)){const found=subj.find(t=>t.id===id);if(found)return found;}
+  return{id,text:id};
 }
+function subjOf(id){return id.startsWith('4')?'bio':id.startsWith('5')?'chem':'phys';}
 
-function subjOf(id) { return id.startsWith('4') ? 'bio' : id.startsWith('5') ? 'chem' : 'phys'; }
-
-function renderTags() {
-  const w = document.getElementById('tags-wrap');
-  const cnt = document.getElementById('topics-count');
-  const topics = curClass ? (curClass.taught_topics || []) : [];
-  cnt.textContent = topics.length ? `(${topics.length})` : '';
-  if (!topics.length) { w.innerHTML = '<span class="empty">No spec points added yet</span>'; return; }
-  w.innerHTML = topics.map(t =>
+function renderTags(){
+  const w=document.getElementById('tags-wrap');
+  const cnt=document.getElementById('topics-count');
+  const topics=curClass?(curClass.taught_topics||[]):[];
+  cnt.textContent=topics.length?`(${topics.length})`:'';
+  if(!topics.length){w.innerHTML='<span class="empty">No spec points added yet</span>';return;}
+  w.innerHTML=topics.map(t=>
     `<span class="tag ${subjOf(t.spec_id)}">${t.spec_text} <span style="cursor:pointer;margin-left:2px" onclick="removeTopic('${t.spec_id}')">×</span></span>`
   ).join('');
 }
 
-// ── Stats ─────────────────────────────────────────────────────────
-function renderStats() {
-  const el = document.getElementById('stats-body');
-  if (!curClass) { el.innerHTML = '<span class="empty">Select a class to see stats.</span>'; return; }
-  const history = curClass.quiz_history || [];
-  const flagged = curClass.flagged_questions || [];
-  if (!history.length) { el.innerHTML = '<span class="empty">No quizzes run yet for this class.</span>'; return; }
+// ── Stats — reads from question_results table ─────────────────────
+async function renderStats(){
+  const el=document.getElementById('stats-body');
+  if(!curClass){el.innerHTML='<span class="empty">Select a class to see stats.</span>';return;}
 
-  // Aggregate % correct per spec point
-  const specStats = {};
-  history.forEach(h => {
-    const qs = h.questions || [];
-    qs.forEach(q => {
-      if (q.spec_id && q.pct_correct !== undefined) {
-        if (!specStats[q.spec_id]) specStats[q.spec_id] = {total: 0, count: 0, text: q.topic || q.spec_id};
-        specStats[q.spec_id].total += q.pct_correct;
-        specStats[q.spec_id].count++;
-      }
-    });
+  const {data:results,error}=await sb.from('question_results')
+    .select('*').eq('class_id',curClass.id).order('created_at',{ascending:false});
+
+  if(error){el.innerHTML=`<span class="empty">Error loading stats: ${error.message}</span>`;return;}
+  if(!results||!results.length){
+    el.innerHTML=`
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val">${(curClass.quiz_history||[]).length}</div><div class="stat-lbl">Quizzes run</div></div>
+        <div class="stat-box"><div class="stat-val">${(curClass.taught_topics||[]).length}</div><div class="stat-lbl">Spec points covered</div></div>
+        <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Avg % correct</div></div>
+        <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Weakest spec point</div></div>
+      </div>
+      <span class="empty">No results saved yet. Run a quiz and hit Save results to start tracking.</span>`;
+    return;
+  }
+
+  // Aggregate by spec_id
+  const specMap={};
+  results.forEach(r=>{
+    if(!r.spec_id)return;
+    if(!specMap[r.spec_id])specMap[r.spec_id]={total:0,count:0,text:r.spec_text||r.topic||r.spec_id,spec_id:r.spec_id};
+    specMap[r.spec_id].total+=r.pct_correct;
+    specMap[r.spec_id].count++;
   });
 
-  const totalQuizzes = history.length;
-  const allPcts = flagged.map(f => f.pct_correct).filter(p => p !== undefined);
-  const avgPct = allPcts.length ? Math.round(allPcts.reduce((a, b) => a + b, 0) / allPcts.length) : null;
-  const weakTopics = flagged.filter(f => (f.pct_correct || 0) < 60).length;
+  const entries=Object.values(specMap).map(s=>({...s,avg:Math.round(s.total/s.count)}));
+  entries.sort((a,b)=>a.avg-b.avg);
 
-  el.innerHTML = `
+  const overallAvg=Math.round(results.reduce((sum,r)=>sum+r.pct_correct,0)/results.length);
+  const weakCount=entries.filter(e=>e.avg<60).length;
+  const weakest=entries[0];
+
+  el.innerHTML=`
     <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val">${totalQuizzes}</div><div class="stat-lbl">Quizzes run</div></div>
-      <div class="stat-box"><div class="stat-val">${curClass.taught_topics?.length || 0}</div><div class="stat-lbl">Spec points covered</div></div>
-      <div class="stat-box"><div class="stat-val">${avgPct !== null ? avgPct + '%' : '—'}</div><div class="stat-lbl">Avg % correct</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:${weakTopics > 0 ? '#A32D2D' : '#3B6D11'}">${weakTopics}</div><div class="stat-lbl">Topics needing review</div></div>
+      <div class="stat-box"><div class="stat-val">${(curClass.quiz_history||[]).length}</div><div class="stat-lbl">Quizzes run</div></div>
+      <div class="stat-box"><div class="stat-val">${(curClass.taught_topics||[]).length}</div><div class="stat-lbl">Spec points covered</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:${overallAvg<60?'#A32D2D':overallAvg<75?'#854F0B':'#3B6D11'}">${overallAvg}%</div><div class="stat-lbl">Avg % correct</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:${weakCount>0?'#A32D2D':'#3B6D11'}">${weakCount}</div><div class="stat-lbl">Spec points below 60%</div></div>
     </div>
-    ${Object.keys(specStats).length ? `
-      <div class="slabel" style="margin-bottom:10px">Performance by spec point</div>
-      ${Object.entries(specStats).sort((a,b) => (a[1].total/a[1].count) - (b[1].total/b[1].count)).map(([id, s]) => {
-        const avg = Math.round(s.total / s.count);
-        const cls = avg < 50 ? 'low' : avg < 70 ? 'mid' : 'high';
-        return `<div class="spec-bar">
-          <span style="flex:2;font-size:12px;color:#444">${s.text}</span>
-          <div class="spec-bar-bg"><div class="spec-bar-fill ${cls}" style="width:${avg}%"></div></div>
-          <span style="width:36px;text-align:right;font-weight:500;font-size:12px">${avg}%</span>
-        </div>`;
-      }).join('')}` : ''}
+    ${weakest?`<div style="font-size:12px;color:#888;margin-bottom:12px">Weakest: <strong style="color:#A32D2D">${weakest.text}</strong> (${weakest.avg}% avg)</div>`:''}
+    <div class="slabel" style="margin-bottom:10px">Performance by spec point (worst first)</div>
+    ${entries.map(e=>{
+      const cls=e.avg<50?'low':e.avg<70?'mid':'high';
+      return `<div class="spec-bar">
+        <span style="flex:2;font-size:11px;color:#444;line-height:1.3">${e.text}</span>
+        <div class="spec-bar-bg"><div class="spec-bar-fill ${cls}" style="width:${e.avg}%"></div></div>
+        <span style="width:36px;text-align:right;font-weight:600;font-size:12px;color:${e.avg<60?'#A32D2D':e.avg<75?'#854F0B':'#3B6D11'}">${e.avg}%</span>
+      </div>`;
+    }).join('')}
   `;
 }
 
-// ── Review ────────────────────────────────────────────────────────
-function renderRev() {
-  const el = document.getElementById('rev-body');
-  if (!curClass) { el.innerHTML = '<span class="empty">Select a class.</span>'; return; }
-  const fl = (curClass.flagged_questions || []).filter(f => (f.pct_correct || 0) < 60);
-  if (!fl.length) { el.innerHTML = '<span class="empty">No questions flagged for review yet.</span>'; return; }
-  el.innerHTML = `<div style="font-size:13px;font-weight:500;margin-bottom:10px">Questions to re-ask <span style="color:#888;font-size:12px">(below 60% correct)</span></div>` +
-    fl.map((f, i) => `
+function renderRev(){
+  const el=document.getElementById('rev-body');
+  if(!curClass){el.innerHTML='<span class="empty">Select a class.</span>';return;}
+  const fl=(curClass.flagged_questions||[]).filter(f=>(f.pct_correct||0)<60);
+  if(!fl.length){el.innerHTML='<span class="empty">No questions flagged for review yet.</span>';return;}
+  el.innerHTML=`<div style="font-size:13px;font-weight:500;margin-bottom:10px">Questions to re-ask <span style="color:#888;font-size:12px">(below 60% correct)</span></div>`+
+    fl.map((f,i)=>`
       <div class="q-block">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div>
-            <div style="font-size:11px;color:#888;margin-bottom:3px">${f.topic || ''} · ${new Date(f.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'})}</div>
+            <div style="font-size:11px;color:#888;margin-bottom:3px">${f.topic||''} · ${new Date(f.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
             <div style="font-size:13px;margin-bottom:5px">${f.question}</div>
             <span class="badge badge-low">${f.pct_correct}% correct</span>
           </div>
@@ -682,180 +649,253 @@ function renderRev() {
       </div>`).join('');
 }
 
-async function dismissFlag(id) {
-  await sb.from('flagged_questions').delete().eq('id', id);
-  if (curClass) curClass.flagged_questions = (curClass.flagged_questions || []).filter(f => f.id !== id);
+async function dismissFlag(id){
+  await sb.from('flagged_questions').delete().eq('id',id);
+  if(curClass)curClass.flagged_questions=(curClass.flagged_questions||[]).filter(f=>f.id!==id);
   renderRev();
 }
 
-// ── History ────────────────────────────────────────────────────────
-function renderHist() {
-  const el = document.getElementById('hist-body');
-  if (!curClass) { el.innerHTML = '<span class="empty">Select a class to see history.</span>'; return; }
-  const h = curClass.quiz_history || [];
-  if (!h.length) { el.innerHTML = `<span class="empty">No quizzes run yet for ${curClass.name}.</span>`; return; }
-  el.innerHTML = h.slice().reverse().map(r => `
+function renderHist(){
+  const el=document.getElementById('hist-body');
+  if(!curClass){el.innerHTML='<span class="empty">Select a class to see history.</span>';return;}
+  const h=curClass.quiz_history||[];
+  if(!h.length){el.innerHTML=`<span class="empty">No quizzes run yet for ${curClass.name}.</span>`;return;}
+  el.innerHTML=h.slice().reverse().map(r=>`
     <div class="q-block" style="font-size:13px">
-      <div style="color:#888;font-size:11px;margin-bottom:3px">${new Date(r.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}</div>
-      <div style="font-weight:500">${(r.questions||[]).length} questions · ${r.tier || ''} tier</div>
+      <div style="color:#888;font-size:11px;margin-bottom:3px">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="font-weight:500">${(r.questions||[]).length} questions · ${r.tier||''} tier</div>
     </div>`).join('');
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────
-function showTab(t) {
-  ['build','stats','review','history'].forEach(x => {
-    document.getElementById('pane-' + (x === 'history' ? 'history' : x)).style.display = x === t ? 'block' : 'none';
-    document.getElementById('tb-' + (x === 'history' ? 'history' : x)).classList.toggle('on', x === t);
+function showTab(t){
+  ['build','stats','review','history'].forEach(x=>{
+    document.getElementById('pane-'+x).style.display=x===t?'block':'none';
+    document.getElementById('tb-'+x).classList.toggle('on',x===t);
   });
-  if (t === 'stats') renderStats();
-  if (t === 'review') renderRev();
-  if (t === 'history') renderHist();
+  if(t==='stats')renderStats();
+  if(t==='review')renderRev();
+  if(t==='history')renderHist();
 }
 
-// ── Generate ──────────────────────────────────────────────────────
-async function generate() {
-  if (!curClass) { alert('Select a class first.'); return; }
-  const topics = curClass.taught_topics || [];
-  if (!topics.length) { alert('Add at least one spec point first.'); return; }
-
-  const btn = document.getElementById('gen-btn');
-  btn.innerHTML = '<span class="spinner"></span> Generating…';
-  btn.disabled = true;
-  document.getElementById('gen-err').innerHTML = '';
-
-  const tier = document.getElementById('tier').value;
-  const total = Math.max(1, parseInt(document.getElementById('q-total').value) || 5);
-  const mc = Math.min(parseInt(document.getElementById('q-mc').value) || 0, total);
-  const incFlag = document.getElementById('inc-flag').value === '1';
-  lastSettings = {tier, total, mc};
-
-  const flagged = incFlag ? (curClass.flagged_questions || []).filter(f => (f.pct_correct||0) < 60).slice(0, 3) : [];
-  const topicObjs = topics.map(t => ({id: t.spec_id, text: t.spec_text}));
-
-  try {
-    const resp = await fetch('/api/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({topics: topicObjs, tier, total, mc, flagged: flagged.map(f => ({q: f.question})), class_id: curClass.id})
+async function generate(){
+  if(!curClass){alert('Select a class first.');return;}
+  const topics=curClass.taught_topics||[];
+  if(!topics.length){alert('Add at least one spec point first.');return;}
+  const btn=document.getElementById('gen-btn');
+  btn.innerHTML='<span class="spinner"></span> Generating…';btn.disabled=true;
+  document.getElementById('gen-err').innerHTML='';
+  const tier=document.getElementById('tier').value;
+  const total=Math.max(1,parseInt(document.getElementById('q-total').value)||5);
+  const mc=Math.min(parseInt(document.getElementById('q-mc').value)||0,total);
+  const incFlag=document.getElementById('inc-flag').value==='1';
+  lastSettings={tier,total,mc};
+  const flagged=incFlag?(curClass.flagged_questions||[]).filter(f=>(f.pct_correct||0)<60).slice(0,3):[];
+  const topicObjs=topics.map(t=>({id:t.spec_id,text:t.spec_text}));
+  try{
+    const resp=await fetch('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},
+      body:JSON.stringify({topics:topicObjs,tier,total,mc,flagged:flagged.map(f=>({q:f.question})),class_id:curClass.id})
     });
-    if (!resp.ok) { const e = await resp.json(); throw new Error(e.error || `HTTP ${resp.status}`); }
-    const data = await resp.json();
-    quiz = data.questions || [];
-    if (!quiz.length) throw new Error('No questions returned');
-
-    // Refresh class data
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||`HTTP ${resp.status}`);}
+    const data=await resp.json();
+    quiz=data.questions||[];
+    if(!quiz.length)throw new Error('No questions returned');
     await loadClasses();
-    const updated = classes.find(c => c.id === curClass.id);
-    if (updated) curClass = updated;
-
+    const updated=classes.find(c=>c.id===curClass.id);
+    if(updated)curClass=updated;
     renderQuiz();
-  } catch (e) {
-    document.getElementById('gen-err').innerHTML = `<div class="err">Error: ${e.message}</div>`;
+  }catch(e){
+    document.getElementById('gen-err').innerHTML=`<div class="err">Error: ${e.message}</div>`;
   }
-  btn.innerHTML = '&#9654; Generate quiz';
-  btn.disabled = false;
+  btn.innerHTML='&#9654; Generate quiz';btn.disabled=false;
 }
 
-// ── Render quiz ───────────────────────────────────────────────────
-function renderQuiz() {
-  const out = document.getElementById('quiz-out');
-  out.innerHTML = `<div class="card">
+function renderQuiz(){
+  const out=document.getElementById('quiz-out');
+  out.innerHTML=`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:15px;font-weight:500">
-        Today's quiz
-        ${curClass ? `<span class="badge badge-blue" style="margin-left:6px">${curClass.name}</span>` : ''}
-        <span class="badge badge-grey" style="margin-left:4px">${lastSettings.tier || ''}</span>
+      <div style="font-size:15px;font-weight:500">Today's quiz
+        ${curClass?`<span class="badge badge-blue" style="margin-left:6px">${curClass.name}</span>`:''}
+        <span class="badge badge-grey" style="margin-left:4px">${lastSettings.tier||''}</span>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-sm btn-copy" onclick="copyForDoc()">&#128203; Copy for document</button>
         <button class="btn btn-sm btn-primary" onclick="saveResults()">&#128190; Save results</button>
       </div>
     </div>
-    ${quiz.map((q, i) => qHtml(q, i)).join('')}
+    ${quiz.map((q,i)=>qHtml(q,i)).join('')}
   </div>`;
 }
 
-function qHtml(q, i) {
-  const isMC = q.type === 'mc';
-  const specRef = q.spec_id ? `<span style="font-family:monospace;background:#f0f0f0;padding:1px 5px;border-radius:4px;margin-left:4px">${q.spec_id}</span>` : '';
+function qHtml(q,i){
+  const isMC=q.type==='mc';
+  const specRef=q.spec_id?`<span style="font-family:monospace;background:#f0f0f0;padding:1px 5px;border-radius:4px;margin-left:4px">${q.spec_id}</span>`:'';
   return `<div class="q-block" id="qb-${i}">
-    <div class="q-meta">Q${i+1} · ${q.topic||''} ${specRef} · ${isMC ? 'multiple choice' : 'short answer'}</div>
+    <div class="q-meta">Q${i+1} · ${q.topic||''} ${specRef} · ${isMC?'multiple choice':'short answer'}</div>
     <div class="q-text">${q.question}</div>
-    ${isMC
-      ? `<div class="mc-options" id="mc-${i}">${(q.options||[]).map((o,j) => `<div class="mc-opt" onclick="pickMC(${i},${j},'${(q.answer||'').replace(/'/g,"\\'")}' )">${o}</div>`).join('')}</div>`
-      : `<button class="btn btn-sm" onclick="showAns(${i})">Show model answer</button>`}
-    <div class="ans-box" id="ans-${i}">
-      <div class="ans-lbl">Model answer (AQA spec · ${q.spec_id||''})</div>
-      <div style="font-size:13px;line-height:1.5">${q.model_answer||''}</div>
-    </div>
+    ${isMC?`<div class="mc-options" id="mc-${i}">${(q.options||[]).map((o,j)=>`<div class="mc-opt" onclick="pickMC(${i},${j},'${(q.answer||'').replace(/'/g,"\\'")}' )">${o}</div>`).join('')}</div>`
+    :`<button class="btn btn-sm" onclick="showAns(${i})">Show model answer</button>`}
+    <div class="ans-box" id="ans-${i}"><div class="ans-lbl">Model answer (AQA spec · ${q.spec_id||''})</div>
+      <div style="font-size:13px;line-height:1.5">${q.model_answer||''}</div></div>
     <div class="pct-row">
       % correct:
-      <input type="number" class="pct-input" id="pct-${i}" min="0" max="100" placeholder="%"
-        oninput="checkPct(${i},'${(q.question||'').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}','${(q.topic||'').replace(/'/g,"\\'")}')">
+      <input type="number" class="pct-input" id="pct-${i}" min="0" max="100" placeholder="%" oninput="checkPct(${i})">
       <span id="pctb-${i}"></span>
     </div>
   </div>`;
 }
 
-function pickMC(qi, optIdx, correct) {
-  const letters = ['A','B','C','D'];
-  document.querySelectorAll(`#mc-${qi} .mc-opt`).forEach((o, j) => {
+function pickMC(qi,optIdx,correct){
+  const letters=['A','B','C','D'];
+  document.querySelectorAll(`#mc-${qi} .mc-opt`).forEach((o,j)=>{
     o.classList.remove('correct','wrong');
-    if (letters[j] === correct) o.classList.add('correct');
-    else if (j === optIdx) o.classList.add('wrong');
+    if(letters[j]===correct)o.classList.add('correct');
+    else if(j===optIdx)o.classList.add('wrong');
   });
   showAns(qi);
 }
 
-function showAns(i) { document.getElementById('ans-' + i).classList.add('show'); }
+function showAns(i){document.getElementById('ans-'+i).classList.add('show');}
 
-function checkPct(i) {
-  const v = parseInt(document.getElementById('pct-' + i).value);
-  const b = document.getElementById('pctb-' + i);
-  if (isNaN(v)) { b.innerHTML = ''; return; }
-  b.innerHTML = v < 60 ? '<span class="badge badge-low">⚑ Flag for review</span>' : '<span class="badge badge-ok">✓ Good</span>';
+function checkPct(i){
+  const v=parseInt(document.getElementById('pct-'+i).value);
+  const b=document.getElementById('pctb-'+i);
+  if(isNaN(v)){b.innerHTML='';return;}
+  b.innerHTML=v<60?'<span class="badge badge-low">⚑ Flag for review</span>':'<span class="badge badge-ok">✓ Good</span>';
 }
 
-async function saveResults() {
-  if (!curClass) { alert('No class selected.'); return; }
-  const toFlag = [];
-  quiz.forEach((q, i) => {
-    const v = parseInt(document.getElementById('pct-' + i).value);
-    if (!isNaN(v) && v < 60) {
-      toFlag.push({class_id: curClass.id, question: q.question, spec_id: q.spec_id, topic: q.topic, pct_correct: v});
-    }
+async function saveResults(){
+  if(!curClass){alert('No class selected.');return;}
+
+  // Collect all results — every question, not just flagged
+  const allResults=[];
+  const toFlag=[];
+  quiz.forEach((q,i)=>{
+    const v=parseInt(document.getElementById('pct-'+i).value);
+    if(isNaN(v))return;
+    allResults.push({
+      class_id:curClass.id,spec_id:q.spec_id||null,
+      spec_text:getTopicById(q.spec_id||'')?.text||q.topic||null,
+      topic:q.topic||null,question:q.question,pct_correct:v
+    });
+    if(v<60)toFlag.push({class_id:curClass.id,question:q.question,spec_id:q.spec_id,topic:q.topic,pct_correct:v});
   });
-  if (toFlag.length) {
-    const {error} = await sb.from('flagged_questions').insert(toFlag);
-    if (error) { alert('Error saving: ' + error.message); return; }
+
+  if(!allResults.length){alert('Enter % correct for at least one question before saving.');return;}
+
+  // Save to question_results (for stats)
+  const {error:resErr}=await sb.from('question_results').insert(allResults);
+  if(resErr){alert('Error saving results: '+resErr.message);return;}
+
+  // Save flagged questions
+  if(toFlag.length){
+    const {error:flagErr}=await sb.from('flagged_questions').insert(toFlag);
+    if(flagErr){alert('Error saving flagged: '+flagErr.message);return;}
   }
-  // Reload class data
+
   await loadClasses();
-  const updated = classes.find(c => c.id === curClass.id);
-  if (updated) curClass = updated;
-  alert('Saved! ' + (toFlag.length ? toFlag.length + ' question(s) flagged for review.' : 'All questions answered well.'));
-  renderRev();
-  renderStats();
+  const updated=classes.find(c=>c.id===curClass.id);
+  if(updated)curClass=updated;
+
+  const saved=allResults.length;
+  const flagged=toFlag.length;
+  alert(`Saved ${saved} result${saved!==1?'s':''}!${flagged?` ${flagged} question${flagged!==1?'s':''} flagged for review.':' All answered well.'}`);
+  renderRev();renderStats();
 }
 
-function copyForDoc() {
-  const date = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
-  let out = `AQA GCSE Combined Science — Retrieval Quiz\n`;
-  out += `${curClass ? 'Class: ' + curClass.name + '  |  ' : ''}${lastSettings.tier||''} Tier  |  ${date}\n`;
-  out += '─'.repeat(60) + '\n\n';
-  quiz.forEach((q, i) => {
-    out += `Q${i+1}. [${q.topic}${q.spec_id ? ' · ' + q.spec_id : ''}]\n${q.question}\n`;
-    if (q.type === 'mc' && q.options) q.options.forEach(o => out += `   ${o}\n`);
-    out += '\n';
+function copyForDoc(){
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  let out=`AQA GCSE Combined Science — Retrieval Quiz\n`;
+  out+=`${curClass?'Class: '+curClass.name+'  |  ':''}${lastSettings.tier||''} Tier  |  ${date}\n`;
+  out+='─'.repeat(60)+'\n\n';
+  quiz.forEach((q,i)=>{
+    out+=`Q${i+1}. [${q.topic}${q.spec_id?' · '+q.spec_id:''}]\n${q.question}\n`;
+    if(q.type==='mc'&&q.options)q.options.forEach(o=>out+=`   ${o}\n`);
+    out+='\n';
   });
-  out += '─'.repeat(60) + '\nMODEL ANSWERS\n' + '─'.repeat(60) + '\n\n';
-  quiz.forEach((q, i) => { out += `Q${i+1}. ${q.model_answer}\n\n`; });
-  navigator.clipboard.writeText(out)
-    .then(() => alert('Copied! Paste into Word or Google Docs.'))
-    .catch(() => alert('Copy failed.'));
+  out+='─'.repeat(60)+'\nMODEL ANSWERS\n'+'─'.repeat(60)+'\n\n';
+  quiz.forEach((q,i)=>{out+=`Q${i+1}. ${q.model_answer}\n\n`;});
+  navigator.clipboard.writeText(out).then(()=>alert('Copied! Paste into Word or Google Docs.')).catch(()=>alert('Copy failed.'));
+}
+
+// ── Profile ───────────────────────────────────────────────────────
+function showProfile(){
+  const modal=document.getElementById('profile-modal');
+  modal.style.display='flex';
+  document.getElementById('profile-email-display').textContent=user.email;
+  document.getElementById('profile-name').value=user.user_metadata?.full_name||'';
+  document.getElementById('profile-school').value=user.user_metadata?.school||'';
+  document.getElementById('profile-msg').innerHTML='';
+  document.getElementById('password-msg').innerHTML='';
+  document.getElementById('new-password').value='';
+  document.getElementById('confirm-password').value='';
+  renderProfileClasses();
+}
+
+function closeProfile(){document.getElementById('profile-modal').style.display='none';}
+
+async function saveProfile(){
+  const name=document.getElementById('profile-name').value.trim();
+  const school=document.getElementById('profile-school').value.trim();
+  const {error}=await sb.auth.updateUser({data:{full_name:name,school}});
+  const msg=document.getElementById('profile-msg');
+  if(error){msg.innerHTML=`<div class="err">${error.message}</div>`;}
+  else{const {data}=await sb.auth.getUser();user=data.user;msg.innerHTML=`<div class="success">Profile updated!</div>`;}
+}
+
+async function changePassword(){
+  const pw=document.getElementById('new-password').value;
+  const confirm=document.getElementById('confirm-password').value;
+  const msg=document.getElementById('password-msg');
+  if(pw.length<8){msg.innerHTML=`<div class="err">Password must be at least 8 characters</div>`;return;}
+  if(pw!==confirm){msg.innerHTML=`<div class="err">Passwords do not match</div>`;return;}
+  const {error}=await sb.auth.updateUser({password:pw});
+  if(error){msg.innerHTML=`<div class="err">${error.message}</div>`;}
+  else{msg.innerHTML=`<div class="success">Password updated!</div>`;document.getElementById('new-password').value='';document.getElementById('confirm-password').value='';}
+}
+
+function renderProfileClasses(){
+  const el=document.getElementById('profile-classes');
+  if(!classes.length){el.innerHTML='<span class="empty" style="display:block;padding:8px 0">No classes yet.</span>';return;}
+  el.innerHTML=classes.map(c=>`
+    <div class="q-block" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 12px">
+      <input type="text" value="${c.name}" id="cls-name-${c.id}" style="flex:1;height:32px;font-size:13px;border:1px solid #e0e0e0;border-radius:6px;padding:0 8px">
+      <button class="btn btn-sm" onclick="renameClass('${c.id}')">Rename</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteClass('${c.id}')">Delete</button>
+    </div>`).join('');
+}
+
+async function renameClass(id){
+  const name=document.getElementById('cls-name-'+id).value.trim();if(!name)return;
+  const {error}=await sb.from('classes').update({name}).eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  const cls=classes.find(c=>c.id===id);if(cls)cls.name=name;
+  if(curClass&&curClass.id===id)curClass.name=name;
+  renderClsSel();
+  document.getElementById('profile-class-msg').innerHTML=`<div class="success">Renamed!</div>`;
+  setTimeout(()=>document.getElementById('profile-class-msg').innerHTML='',2000);
+}
+
+async function deleteClass(id){
+  if(!confirm('Delete this class and all its data? This cannot be undone.'))return;
+  const {error}=await sb.from('classes').delete().eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  classes=classes.filter(c=>c.id!==id);
+  if(curClass&&curClass.id===id)curClass=null;
+  renderClsSel();renderProfileClasses();renderTags();renderTopicList();
+}
+
+async function profileAddClass(){
+  const inp=document.getElementById('profile-new-class');
+  const n=inp.value.trim();if(!n)return;
+  const {data,error}=await sb.from('classes').insert({name:n,tier:'Higher',teacher_id:user.id}).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  inp.value='';
+  classes.push({...data,taught_topics:[],flagged_questions:[],quiz_history:[]});
+  renderClsSel();renderProfileClasses();
+  document.getElementById('profile-class-msg').innerHTML=`<div class="success">Class added!</div>`;
+  setTimeout(()=>document.getElementById('profile-class-msg').innerHTML='',2000);
 }
 
 init();
