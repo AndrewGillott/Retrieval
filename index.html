@@ -486,7 +486,7 @@ async function init(){
 
 async function loadClasses(){
   const {data,error}=await sb.from('classes')
-    .select('*, taught_topics(*), flagged_questions(*), quiz_history(*)')
+    .select('id, name, tier, class_size, teacher_id, created_at, taught_topics(*), flagged_questions(*), quiz_history(id, tier, created_at, questions)')
     .eq('teacher_id',user.id).order('created_at',{ascending:true});
   if(!error)classes=data||[];
 }
@@ -741,19 +741,40 @@ async function generate(){
 
 function renderQuiz(){
   const out=document.getElementById('quiz-out');
+  const sz=curClass&&curClass.class_size?curClass.class_size:'';
   out.innerHTML=`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div style="font-size:15px;font-weight:500">Today's quiz
         ${curClass?`<span class="badge badge-blue" style="margin-left:6px">${curClass.name}</span>`:''}
         <span class="badge badge-grey" style="margin-left:4px">${lastSettings.tier||''}</span>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#666">
+          Class size:
+          <input type="number" id="class-size-input" value="${sz}" min="1" max="60" placeholder="e.g. 28"
+            style="width:64px;height:28px;font-size:12px;padding:0 6px;border:1px solid #ccc;border-radius:6px"
+            oninput="updateClassSize(this.value)">
+        </div>
         <button class="btn btn-sm btn-copy" onclick="copyForDoc()">&#128203; Copy for document</button>
         <button class="btn btn-sm btn-primary" onclick="saveResults()">&#128190; Save results</button>
       </div>
     </div>
     ${quiz.map((q,i)=>qHtml(q,i)).join('')}
   </div>`;
+}
+
+async function updateClassSize(val){
+  const n=parseInt(val);
+  if(!curClass||isNaN(n)||n<1)return;
+  curClass.class_size=n;
+  // Update all class size displays
+  quiz.forEach((_,i)=>{
+    const el=document.getElementById('classsize-display-'+i);
+    if(el)el.textContent=n;
+    calcPct(i);
+  });
+  // Save to database
+  await sb.from('classes').update({class_size:n}).eq('id',curClass.id);
 }
 
 function qHtml(q,i){
@@ -767,9 +788,10 @@ function qHtml(q,i){
     <div class="ans-box" id="ans-${i}"><div class="ans-lbl">Model answer (AQA spec · ${q.spec_id||''})</div>
       <div style="font-size:13px;line-height:1.5">${q.model_answer||''}</div></div>
     <div class="pct-row">
-      % correct:
-      <input type="number" class="pct-input" id="pct-${i}" min="0" max="100" placeholder="%" oninput="checkPct(${i})">
-      <span id="pctb-${i}"></span>
+      <span style="color:#666">Students correct:</span>
+      <input type="number" class="pct-input" id="correct-${i}" min="0" placeholder="e.g. 18" style="width:70px" oninput="calcPct(${i})">
+      <span style="color:#888;font-size:12px">of <strong id="classsize-display-${i}">${curClass&&curClass.class_size?curClass.class_size:'?'}</strong></span>
+      <span id="pctb-${i}" style="font-weight:600;font-size:13px"></span>
     </div>
   </div>`;
 }
@@ -786,11 +808,20 @@ function pickMC(qi,optIdx,correct){
 
 function showAns(i){document.getElementById('ans-'+i).classList.add('show');}
 
-function checkPct(i){
-  const v=parseInt(document.getElementById('pct-'+i).value);
+function calcPct(i){
+  const correct=parseInt(document.getElementById('correct-'+i).value);
+  const classSize=curClass&&curClass.class_size?parseInt(curClass.class_size):0;
   const b=document.getElementById('pctb-'+i);
-  if(isNaN(v)){b.innerHTML='';return;}
-  b.innerHTML=v<60?'<span class="badge badge-low">⚑ Flag for review</span>':'<span class="badge badge-ok">✓ Good</span>';
+  if(isNaN(correct)||!classSize){b.innerHTML='';return;}
+  const pct=Math.min(100,Math.round((correct/classSize)*100));
+  b.innerHTML=`<span class="badge ${pct<60?'badge-low':'badge-ok'}">${pct}%${pct<60?' ⚑':' ✓'}</span>`;
+}
+
+function getPct(i){
+  const correct=parseInt(document.getElementById('correct-'+i).value);
+  const classSize=curClass&&curClass.class_size?parseInt(curClass.class_size):0;
+  if(isNaN(correct)||!classSize)return null;
+  return Math.min(100,Math.round((correct/classSize)*100));
 }
 
 async function saveResults(){
@@ -800,11 +831,12 @@ async function saveResults(){
   const allResults=[];
   const toFlag=[];
   quiz.forEach((q,i)=>{
-    const v=parseInt(document.getElementById('pct-'+i).value);
-    if(isNaN(v))return;
+    const v=getPct(i);
+    if(v===null)return;
+    const specText=getTopicById(q.spec_id||'').text||q.topic||q.spec_id||null;
     allResults.push({
       class_id:curClass.id,spec_id:q.spec_id||null,
-      spec_text:getTopicById(q.spec_id||'')?.text||q.topic||null,
+      spec_text:specText,
       topic:q.topic||null,question:q.question,pct_correct:v
     });
     if(v<60)toFlag.push({class_id:curClass.id,question:q.question,spec_id:q.spec_id,topic:q.topic,pct_correct:v});
@@ -887,11 +919,38 @@ function renderProfileClasses(){
   const el=document.getElementById('profile-classes');
   if(!classes.length){el.innerHTML='<span class="empty" style="display:block;padding:8px 0">No classes yet.</span>';return;}
   el.innerHTML=classes.map(c=>`
-    <div class="q-block" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 12px">
-      <input type="text" value="${c.name}" id="cls-name-${c.id}" style="flex:1;height:32px;font-size:13px;border:1px solid #e0e0e0;border-radius:6px;padding:0 8px">
-      <button class="btn btn-sm" onclick="renameClass('${c.id}')">Rename</button>
-      <button class="btn btn-sm btn-danger" onclick="deleteClass('${c.id}')">Delete</button>
+    <div class="q-block" style="margin-bottom:10px;padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="text" value="${c.name}" id="cls-name-${c.id}"
+          style="flex:1;height:32px;font-size:13px;border:1px solid #e0e0e0;border-radius:6px;padding:0 8px">
+        <button class="btn btn-sm" onclick="renameClass('${c.id}')">Rename</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteClass('${c.id}')">Delete</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666">
+        <label style="font-size:12px;color:#888;white-space:nowrap">Class size:</label>
+        <input type="number" value="${c.class_size||''}" id="cls-size-${c.id}" min="1" max="60" placeholder="e.g. 28"
+          style="width:80px;height:28px;font-size:12px;border:1px solid #e0e0e0;border-radius:6px;padding:0 8px">
+        <select id="cls-tier-${c.id}" style="height:28px;font-size:12px;border:1px solid #e0e0e0;border-radius:6px;padding:0 6px">
+          <option ${(!c.tier||c.tier==='Higher')?'selected':''}>Higher</option>
+          <option ${c.tier==='Foundation'?'selected':''}>Foundation</option>
+        </select>
+        <button class="btn btn-sm" onclick="saveClassProfile('${c.id}')">Save</button>
+      </div>
     </div>`).join('');
+}
+
+async function saveClassProfile(id){
+  const size=parseInt(document.getElementById('cls-size-'+id).value);
+  const tier=document.getElementById('cls-tier-'+id).value;
+  const updates={tier};
+  if(!isNaN(size)&&size>0)updates.class_size=size;
+  const {error}=await sb.from('classes').update(updates).eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  const cls=classes.find(c=>c.id===id);
+  if(cls){if(!isNaN(size))cls.class_size=size;cls.tier=tier;}
+  if(curClass&&curClass.id===id){if(!isNaN(size))curClass.class_size=size;curClass.tier=tier;}
+  document.getElementById('profile-class-msg').innerHTML='<div class="success">Class profile saved!</div>';
+  setTimeout(()=>document.getElementById('profile-class-msg').innerHTML='',2000);
 }
 
 async function renameClass(id){
