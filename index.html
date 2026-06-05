@@ -800,8 +800,7 @@ async function saveResults(){
 
   const saved=allResults.length;
   const flagged=toFlag.length;
-  alert(`Saved ${saved} result${saved!==1?'s':''}!${flagged?` ${flagged} question${flagged!==1?'s':''} flagged for review.':' All answered well.'}`);
-  renderRev();renderStats();
+alert('Saved ' + saved + ' result' + (saved!==1?'s':'') + '! ' + (flagged?' '+flagged+' flagged for review.':' All answered well.'));  renderRev();renderStats();
 }
 
 function copyForDoc(){
