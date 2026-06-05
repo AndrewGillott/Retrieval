@@ -99,4 +99,3 @@ Return this exact JSON structure:
     return res.status(500).json({ error: e.message });
   }
 }
- 
