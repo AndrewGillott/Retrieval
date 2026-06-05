@@ -1,4 +1,4 @@
-x<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -578,55 +578,83 @@ async function renderStats(){
   const el=document.getElementById('stats-body');
   if(!curClass){el.innerHTML='<span class="empty">Select a class to see stats.</span>';return;}
 
+  // Load fresh quiz count
+  const {data:histData}=await sb.from('quiz_history').select('id').eq('class_id',curClass.id);
+  const quizCount=(histData||[]).length;
+
   const {data:results,error}=await sb.from('question_results')
     .select('*').eq('class_id',curClass.id).order('created_at',{ascending:false});
 
   if(error){el.innerHTML=`<span class="empty">Error loading stats: ${error.message}</span>`;return;}
+
+  const coveredTopics=curClass.taught_topics||[];
+
   if(!results||!results.length){
     el.innerHTML=`
       <div class="stat-grid">
-        <div class="stat-box"><div class="stat-val">${(curClass.quiz_history||[]).length}</div><div class="stat-lbl">Quizzes run</div></div>
-        <div class="stat-box"><div class="stat-val">${(curClass.taught_topics||[]).length}</div><div class="stat-lbl">Spec points covered</div></div>
+        <div class="stat-box"><div class="stat-val">${quizCount}</div><div class="stat-lbl">Quizzes run</div></div>
+        <div class="stat-box"><div class="stat-val">${coveredTopics.length}</div><div class="stat-lbl">Spec points covered</div></div>
         <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Avg % correct</div></div>
-        <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Weakest spec point</div></div>
+        <div class="stat-box"><div class="stat-val">—</div><div class="stat-lbl">Spec points below 60%</div></div>
       </div>
-      <span class="empty">No results saved yet. Run a quiz and hit Save results to start tracking.</span>`;
+      <span class="empty">No results saved yet. Run a quiz and hit Save results to start tracking.</span>
+      ${coveredTopics.length?`
+        <div class="slabel" style="margin-top:16px;margin-bottom:10px">Spec points covered — not yet assessed</div>
+        ${coveredTopics.map(t=>`<div class="spec-bar">
+          <span style="flex:2;font-size:11px;color:#888;line-height:1.3">${t.spec_text}</span>
+          <div class="spec-bar-bg"><div class="spec-bar-fill" style="width:0%"></div></div>
+          <span style="width:36px;text-align:right;font-size:12px;color:#aaa">—</span>
+        </div>`).join('')}`:''}
+    `;
     return;
   }
 
-  // Aggregate by spec_id
+  // Aggregate by spec_id from results
   const specMap={};
   results.forEach(r=>{
     if(!r.spec_id)return;
-    if(!specMap[r.spec_id])specMap[r.spec_id]={total:0,count:0,text:r.spec_text||r.topic||r.spec_id,spec_id:r.spec_id};
+    const topicObj=getTopicById(r.spec_id);
+    if(!specMap[r.spec_id])specMap[r.spec_id]={total:0,count:0,text:topicObj.text,spec_id:r.spec_id,tested:true};
     specMap[r.spec_id].total+=r.pct_correct;
     specMap[r.spec_id].count++;
   });
 
-  const entries=Object.values(specMap).map(s=>({...s,avg:Math.round(s.total/s.count)}));
-  entries.sort((a,b)=>a.avg-b.avg);
+  // Add covered but not yet tested spec points
+  coveredTopics.forEach(t=>{
+    if(!specMap[t.spec_id]){
+      specMap[t.spec_id]={total:0,count:0,text:t.spec_text,spec_id:t.spec_id,tested:false};
+    }
+  });
 
-  const overallAvg=Math.round(results.reduce((sum,r)=>sum+r.pct_correct,0)/results.length);
-  const weakCount=entries.filter(e=>e.avg<60).length;
-  const weakest=entries[0];
+  const tested=Object.values(specMap).filter(s=>s.tested).map(s=>({...s,avg:Math.round(s.total/s.count)}));
+  const untested=Object.values(specMap).filter(s=>!s.tested);
+  tested.sort((a,b)=>a.avg-b.avg);
+
+  const overallAvg=tested.length?Math.round(tested.reduce((sum,s)=>sum+s.avg,0)/tested.length):0;
+  const weakCount=tested.filter(e=>e.avg<60).length;
+  const weakest=tested[0];
 
   el.innerHTML=`
     <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val">${(curClass.quiz_history||[]).length}</div><div class="stat-lbl">Quizzes run</div></div>
-      <div class="stat-box"><div class="stat-val">${(curClass.taught_topics||[]).length}</div><div class="stat-lbl">Spec points covered</div></div>
-      <div class="stat-box"><div class="stat-val" style="color:${overallAvg<60?'#A32D2D':overallAvg<75?'#854F0B':'#3B6D11'}">${overallAvg}%</div><div class="stat-lbl">Avg % correct</div></div>
+      <div class="stat-box"><div class="stat-val">${quizCount}</div><div class="stat-lbl">Quizzes run</div></div>
+      <div class="stat-box"><div class="stat-val">${coveredTopics.length}</div><div class="stat-lbl">Spec points covered</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:${overallAvg<60?'#A32D2D':overallAvg<75?'#854F0B':'#3B6D11'}">${tested.length?overallAvg+'%':'—'}</div><div class="stat-lbl">Avg % correct</div></div>
       <div class="stat-box"><div class="stat-val" style="color:${weakCount>0?'#A32D2D':'#3B6D11'}">${weakCount}</div><div class="stat-lbl">Spec points below 60%</div></div>
     </div>
     ${weakest?`<div style="font-size:12px;color:#888;margin-bottom:12px">Weakest: <strong style="color:#A32D2D">${weakest.text}</strong> (${weakest.avg}% avg)</div>`:''}
-    <div class="slabel" style="margin-bottom:10px">Performance by spec point (worst first)</div>
-    ${entries.map(e=>{
-      const cls=e.avg<50?'low':e.avg<70?'mid':'high';
-      return `<div class="spec-bar">
-        <span style="flex:2;font-size:11px;color:#444;line-height:1.3">${e.text}</span>
-        <div class="spec-bar-bg"><div class="spec-bar-fill ${cls}" style="width:${e.avg}%"></div></div>
-        <span style="width:36px;text-align:right;font-weight:600;font-size:12px;color:${e.avg<60?'#A32D2D':e.avg<75?'#854F0B':'#3B6D11'}">${e.avg}%</span>
-      </div>`;
-    }).join('')}
+    ${tested.length?`
+      <div class="slabel" style="margin-bottom:10px">Assessed spec points (worst first)</div>
+      ${tested.map(e=>{
+        const cls=e.avg<50?'low':e.avg<70?'mid':'high';
+        return '<div class="spec-bar"><span style="flex:2;font-size:11px;color:#444;line-height:1.3">'+e.text+'</span><div class="spec-bar-bg"><div class="spec-bar-fill '+cls+'" style="width:'+e.avg+'%"></div></div><span style="width:36px;text-align:right;font-weight:600;font-size:12px;color:'+(e.avg<60?'#A32D2D':e.avg<75?'#854F0B':'#3B6D11')+'">'+e.avg+'%</span></div>';
+      }).join('')}`:''}
+    ${untested.length?`
+      <div class="slabel" style="margin-top:16px;margin-bottom:10px">Covered — not yet assessed</div>
+      ${untested.map(e=>`<div class="spec-bar">
+        <span style="flex:2;font-size:11px;color:#888;line-height:1.3">${e.text}</span>
+        <div class="spec-bar-bg"><div class="spec-bar-fill" style="width:0%"></div></div>
+        <span style="width:36px;text-align:right;font-size:12px;color:#aaa">—</span>
+      </div>`).join('')}`:''}
   `;
 }
 
