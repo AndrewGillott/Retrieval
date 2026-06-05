@@ -6,7 +6,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
  
   try {
-    // Verify user is logged in
     const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
     if (!token) return res.status(401).json({ error: 'Not authenticated' });
  
@@ -82,14 +81,10 @@ Return this exact JSON structure:
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'apikey': process.env.SUPABASE_PUBLISHABLE_KEY
+          'apikey': process.env.SUPABASE_PUBLISHABLE_KEY,
+          'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({
-          class_id,
-          questions: parsed.questions,
-          tier,
-          quiz_type: 'classwork'
-        })
+        body: JSON.stringify({ class_id, questions: parsed.questions, tier, quiz_type: 'classwork' })
       });
     }
  
@@ -99,3 +94,4 @@ Return this exact JSON structure:
     return res.status(500).json({ error: e.message });
   }
 }
+ 
