@@ -154,10 +154,13 @@ input[type=search]{margin-bottom:8px}
         </div>
         <div class="slabel">Add spec points covered</div>
         <div class="topic-panel">
-          <div class="subj-tabs">
-            <button class="subj-tab on" onclick="switchSubj('bio',this)">Biology</button>
-            <button class="subj-tab" onclick="switchSubj('chem',this)">Chemistry</button>
-            <button class="subj-tab" onclick="switchSubj('phys',this)">Physics</button>
+          <div style="display:flex;gap:8px;padding:8px;border-bottom:1px solid #e0e0e0;background:#f9f9f9;flex-wrap:wrap">
+            <select id="spec-sel" onchange="switchSpec()" style="flex:1;min-width:200px;height:32px;font-size:13px">
+              <option value="aqa-combined">AQA GCSE Combined Science: Trilogy</option>
+              <option value="aqa-separate-physics">AQA GCSE Separate Science: Physics</option>
+              <option value="edexcel-alevel-physics">Edexcel A Level Physics</option>
+            </select>
+            <select id="subj-sel" onchange="switchSubj()" style="width:130px;height:32px;font-size:13px;flex:none"></select>
           </div>
           <div style="padding:8px 8px 0">
             <input type="search" id="topic-search" placeholder="Search spec points…" oninput="renderTopicList()">
@@ -242,213 +245,378 @@ const SUPA_URL = 'https://paahfebuknbpgggffhxv.supabase.co';
 const SUPA_KEY = 'sb_publishable_BPrQiDZn2iJusAYB3uZFbA_vCwe66qT';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-const TOPICS = {
-  bio:[
-    {id:"4.1.1a",text:"4.1.1 — Describe the structure of eukaryotic cells (animal and plant)"},
-    {id:"4.1.1b",text:"4.1.1 — Describe the structure of prokaryotic cells and compare to eukaryotic cells"},
-    {id:"4.1.1c",text:"4.1.1 — Explain the function of sub-cellular structures (nucleus, mitochondria, ribosomes, cell membrane, cell wall, chloroplasts, vacuole)"},
-    {id:"4.1.1d",text:"4.1.1 — Explain how to use a light microscope and calculate magnification"},
-    {id:"4.1.2a",text:"4.1.2 — Describe the structure of a chromosome"},
-    {id:"4.1.2b",text:"4.1.2 — Explain the stages of mitosis and why it is important"},
-    {id:"4.1.2c",text:"4.1.2 — Explain what stem cells are and their potential uses"},
-    {id:"4.1.2d",text:"4.1.2 — Describe the ethical issues around stem cell use"},
-    {id:"4.1.3a",text:"4.1.3 — Define diffusion and describe factors affecting rate of diffusion"},
-    {id:"4.1.3b",text:"4.1.3 — Define osmosis and explain what happens to cells in different solutions"},
-    {id:"4.1.3c",text:"4.1.3 — Define active transport and explain why it requires energy"},
-    {id:"4.2.1",text:"4.2.1 — Describe the levels of organisation: cells, tissues, organs, organ systems"},
-    {id:"4.2.2",text:"4.2.2 — Describe the structure and function of animal tissues"},
-    {id:"4.2.3a",text:"4.2.3 — Describe the structure and function of the heart"},
-    {id:"4.2.3b",text:"4.2.3 — Describe the structure and function of blood vessels (arteries, veins, capillaries)"},
-    {id:"4.2.3c",text:"4.2.3 — Explain how the heart rate is controlled and what affects it"},
-    {id:"4.2.4",text:"4.2.4 — Describe the components of blood and their functions"},
-    {id:"4.2.5",text:"4.2.5 — Explain coronary heart disease and treatments (stents, statins)"},
-    {id:"4.2.6a",text:"4.2.6 — Describe the effects of lifestyle on non-communicable diseases"},
-    {id:"4.2.6b",text:"4.2.6 — Evaluate the relationship between health and disease"},
-    {id:"4.2.7a",text:"4.2.7 — Describe the structure and function of plant tissues"},
-    {id:"4.2.7b",text:"4.2.7 — Explain transpiration and the factors that affect it"},
-    {id:"4.2.7c",text:"4.2.7 — Explain translocation in plants"},
-    {id:"4.3.1a",text:"4.3.1 — Define a pathogen and describe the types (bacteria, viruses, fungi, protists)"},
-    {id:"4.3.1b",text:"4.3.1 — Explain how pathogens are spread and how to reduce transmission"},
-    {id:"4.3.2a",text:"4.3.2 — Describe measles, HIV, tobacco mosaic virus as examples of viral disease"},
-    {id:"4.3.2b",text:"4.3.2 — Describe salmonella and gonorrhoea as examples of bacterial disease"},
-    {id:"4.3.3a",text:"4.3.3 — Describe rose black spot as an example of a fungal disease"},
-    {id:"4.3.3b",text:"4.3.3 — Describe malaria as an example of a protist disease"},
-    {id:"4.3.4",text:"4.3.4 — Describe the human body's defence systems against pathogens"},
-    {id:"4.3.5",text:"4.3.5 — Explain how vaccination works and the importance of herd immunity"},
-    {id:"4.3.6",text:"4.3.6 — Explain how antibiotics work and why antibiotic resistance is a problem"},
-    {id:"4.3.7",text:"4.3.7 — Describe the process of drug discovery and clinical trials"},
-    {id:"4.4.1",text:"4.4.1 — Write and interpret the equation for photosynthesis"},
-    {id:"4.4.2a",text:"4.4.2 — Explain the factors limiting the rate of photosynthesis"},
-    {id:"4.4.2b",text:"4.4.2 — Interpret graphs of limiting factors in photosynthesis"},
-    {id:"4.4.3",text:"4.4.3 — Describe the uses of glucose produced in photosynthesis"},
-    {id:"4.4.4",text:"4.4.4 — Write and interpret the equation for aerobic respiration"},
-    {id:"4.4.5",text:"4.4.5 — Describe anaerobic respiration in animals and yeast"},
-    {id:"4.4.6",text:"4.4.6 — Explain the response to exercise (heart rate, breathing rate, blood flow)"},
-    {id:"4.4.7",text:"4.4.7 — Define metabolism and give examples of metabolic reactions"},
-    {id:"4.5.1",text:"4.5.1 — Define homeostasis and explain its importance"},
-    {id:"4.5.2a",text:"4.5.2 — Describe the structure and function of the nervous system"},
-    {id:"4.5.2b",text:"4.5.2 — Explain a reflex arc with a specific example"},
-    {id:"4.5.2c",text:"4.5.2 — Describe the structure of a synapse and how nerve impulses are transmitted"},
-    {id:"4.5.3",text:"4.5.3 — Describe the structure of the brain and function of key regions"},
-    {id:"4.5.4",text:"4.5.4 — Describe the structure of the eye and explain accommodation"},
-    {id:"4.5.5",text:"4.5.5 — Describe the endocrine system and compare hormonal and nervous control"},
-    {id:"4.5.6",text:"4.5.6 — Explain how blood glucose is regulated by insulin and glucagon"},
-    {id:"4.5.7",text:"4.5.7 — Describe the role of hormones in the menstrual cycle"},
-    {id:"4.5.8",text:"4.5.8 — Evaluate methods of contraception"},
-    {id:"4.5.9",text:"4.5.9 — Explain how hormones are used to treat infertility (IVF) [HT]"},
-    {id:"4.5.10",text:"4.5.10 — Explain negative feedback in hormonal control [HT]"},
-    {id:"4.6.1",text:"4.6.1 — Compare sexual and asexual reproduction"},
-    {id:"4.6.2",text:"4.6.2 — Explain meiosis and how it produces genetic variation"},
-    {id:"4.6.3",text:"4.6.3 — Describe the structure of DNA and explain what a genome is"},
-    {id:"4.6.4",text:"4.6.4 — Explain protein synthesis (transcription and translation) [HT]"},
-    {id:"4.6.5",text:"4.6.5 — Explain what mutations are and how they affect proteins"},
-    {id:"4.6.6",text:"4.6.6 — Explain dominant and recessive inheritance using Punnett squares"},
-    {id:"4.6.7",text:"4.6.7 — Describe inherited disorders: polydactyly and cystic fibrosis"},
-    {id:"4.6.8",text:"4.6.8 — Explain sex determination in humans"},
-    {id:"4.6.9",text:"4.6.9 — Distinguish between continuous and discontinuous variation"},
-    {id:"4.6.10",text:"4.6.10 — Explain natural selection and evolution by Darwin"},
-    {id:"4.6.11",text:"4.6.11 — Describe selective breeding and its uses and risks"},
-    {id:"4.6.12",text:"4.6.12 — Describe genetic engineering and evaluate its uses"},
-    {id:"4.6.13",text:"4.6.13 — Explain how fossils form and what they tell us about evolution"},
-    {id:"4.6.14",text:"4.6.14 — Explain how antibiotic-resistant bacteria evolve by natural selection"},
-    {id:"4.6.15",text:"4.6.15 — Describe the classification system (kingdom to species)"},
-    {id:"4.7.1",text:"4.7.1 — Define a community, ecosystem and habitat; describe interdependence"},
-    {id:"4.7.2",text:"4.7.2 — Explain food chains, food webs and biomass pyramids"},
-    {id:"4.7.3",text:"4.7.3 — Describe abiotic and biotic factors that affect ecosystems"},
-    {id:"4.7.4",text:"4.7.4 — Explain how organisms are adapted to their environment"},
-    {id:"4.7.5",text:"4.7.5 — Explain intraspecific and interspecific competition"},
-    {id:"4.7.6",text:"4.7.6 — Interpret predator-prey graphs and explain the relationship"},
-    {id:"4.7.7a",text:"4.7.7 — Describe the carbon cycle"},
-    {id:"4.7.7b",text:"4.7.7 — Describe the water cycle"},
-    {id:"4.7.7c",text:"4.7.7 — Describe the nitrogen cycle including the role of bacteria"},
-    {id:"4.7.8",text:"4.7.8 — Explain the factors affecting rate of decomposition"},
-    {id:"4.7.9",text:"4.7.9 — Describe the effects of global warming on ecosystems and biodiversity"},
-    {id:"4.7.10",text:"4.7.10 — Describe human impacts on ecosystems (deforestation, pollution, land use)"}
-  ],
-  chem:[
-    {id:"5.1.1",text:"5.1.1 — Define atom, element, compound and mixture; interpret chemical formulae"},
-    {id:"5.1.2",text:"5.1.2 — Describe methods of separating mixtures"},
-    {id:"5.1.3a",text:"5.1.3 — Describe the development of the atomic model (Dalton, Thomson, Rutherford, Bohr)"},
-    {id:"5.1.3b",text:"5.1.3 — Describe Rutherford's alpha particle scattering experiment and what it showed"},
-    {id:"5.1.4",text:"5.1.4 — Describe the properties of protons, neutrons and electrons"},
-    {id:"5.1.5",text:"5.1.5 — Explain electronic structure and how to write electron configurations"},
-    {id:"5.1.6",text:"5.1.6 — Describe the structure and organisation of the periodic table"},
-    {id:"5.1.7a",text:"5.1.7 — Explain the properties and trends in Group 1 (alkali metals)"},
-    {id:"5.1.7b",text:"5.1.7 — Explain the properties and trends in Group 7 (halogens)"},
-    {id:"5.1.7c",text:"5.1.7 — Explain the properties of Group 0 (noble gases)"},
-    {id:"5.1.8",text:"5.1.8 — Compare the properties of metals and non-metals"},
-    {id:"5.1.9",text:"5.1.9 — Describe the properties and uses of transition metals"},
-    {id:"5.2.1a",text:"5.2.1 — Explain ionic bonding and predict the formulae of ionic compounds"},
-    {id:"5.2.1b",text:"5.2.1 — Explain covalent bonding and draw dot-and-cross diagrams"},
-    {id:"5.2.1c",text:"5.2.1 — Explain metallic bonding and relate it to properties of metals"},
-    {id:"5.2.2",text:"5.2.2 — Describe the structure and properties of ionic compounds"},
-    {id:"5.2.3a",text:"5.2.3 — Describe simple molecular structures and explain why they have low melting points"},
-    {id:"5.2.3b",text:"5.2.3 — Describe giant covalent structures (diamond, graphite, silicon dioxide)"},
-    {id:"5.2.4",text:"5.2.4 — Describe the structure of polymers and explain their properties"},
-    {id:"5.2.5",text:"5.2.5 — Describe giant metallic structures and explain metallic properties"},
-    {id:"5.2.6a",text:"5.2.6 — Explain the structure and properties of graphene and fullerenes"},
-    {id:"5.3.1",text:"5.3.1 — Explain conservation of mass and balance chemical equations"},
-    {id:"5.3.2",text:"5.3.2 — Calculate relative formula mass (Mr) from atomic masses"},
-    {id:"5.3.3",text:"5.3.3 — Define the mole and calculate moles, mass and concentration"},
-    {id:"5.3.4",text:"5.3.4 — Explain limiting reactants and calculate quantities [HT]"},
-    {id:"5.3.5",text:"5.3.5 — Calculate percentage yield and atom economy"},
-    {id:"5.4.1",text:"5.4.1 — Describe the reactivity series and predict reactions of metals"},
-    {id:"5.4.2a",text:"5.4.2 — Explain extraction of metals by reduction and electrolysis"},
-    {id:"5.4.2b",text:"5.4.2 — Explain why aluminium is extracted by electrolysis"},
-    {id:"5.4.3",text:"5.4.3 — Define oxidation and reduction in terms of oxygen and electrons (OIL RIG)"},
-    {id:"5.4.4",text:"5.4.4 — Describe reactions of acids with metals, metal oxides, hydroxides and carbonates"},
-    {id:"5.4.5",text:"5.4.5 — Define pH scale; describe use of indicators and universal indicator"},
-    {id:"5.4.6a",text:"5.4.6 — Explain electrolysis of molten and aqueous ionic compounds"},
-    {id:"5.4.6b",text:"5.4.6 — Predict products of electrolysis at anode and cathode"},
-    {id:"5.5.1",text:"5.5.1 — Define exothermic and endothermic reactions with examples"},
-    {id:"5.5.2",text:"5.5.2 — Calculate energy change from bond energies [HT]"},
-    {id:"5.5.3",text:"5.5.3 — Describe hydrogen fuel cells and compare to batteries"},
-    {id:"5.6.1",text:"5.6.1 — Describe how to measure rate of reaction"},
-    {id:"5.6.2",text:"5.6.2 — Explain how temperature, concentration, surface area and catalysts affect rate"},
-    {id:"5.6.3",text:"5.6.3 — Explain collision theory and activation energy"},
-    {id:"5.6.4",text:"5.6.4 — Explain reversible reactions and dynamic equilibrium [HT]"},
-    {id:"5.7.1",text:"5.7.1 — Describe crude oil as a mixture of hydrocarbons; define alkanes"},
-    {id:"5.7.2",text:"5.7.2 — Explain fractional distillation of crude oil and how it works"},
-    {id:"5.7.3",text:"5.7.3 — Describe the properties and uses of different fractions"},
-    {id:"5.7.4",text:"5.7.4 — Explain cracking and why it is useful"},
-    {id:"5.7.5",text:"5.7.5 — Describe alkenes and addition polymerisation"},
-    {id:"5.8.1",text:"5.8.1 — Define pure substance and formulation; give examples"},
-    {id:"5.8.2",text:"5.8.2 — Explain paper chromatography and calculate Rf values"},
-    {id:"5.8.3",text:"5.8.3 — Describe tests for hydrogen, oxygen, carbon dioxide and chlorine"},
-    {id:"5.8.4",text:"5.8.4 — Describe flame tests and tests for common ions [HT]"},
-    {id:"5.9.1",text:"5.9.1 — Describe the evolution of the Earth's atmosphere and current composition"},
-    {id:"5.9.2",text:"5.9.2 — Explain the greenhouse effect and named greenhouse gases"},
-    {id:"5.9.3",text:"5.9.3 — Evaluate the evidence for and impact of climate change"},
-    {id:"5.9.4",text:"5.9.4 — Describe atmospheric pollutants and their sources"},
-    {id:"5.10.1",text:"5.10.1 — Distinguish between finite and renewable resources"},
-    {id:"5.10.2",text:"5.10.2 — Describe water treatment (filtration, sedimentation, chlorination)"},
-    {id:"5.10.3",text:"5.10.3 — Explain the Haber process and conditions used; describe NPK fertilisers"},
-    {id:"5.10.4",text:"5.10.4 — Describe and evaluate a life cycle assessment (LCA)"},
-    {id:"5.10.5",text:"5.10.5 — Compare properties and uses of ceramics, polymers and composites"},
-    {id:"5.10.6",text:"5.10.6 — Describe corrosion and methods of prevention"}
-  ],
-  phys:[
-    {id:"6.1.1",text:"6.1.1 — Describe the different energy stores and energy transfer pathways"},
-    {id:"6.1.2a",text:"6.1.2 — Calculate kinetic energy (Ek = ½mv²)"},
-    {id:"6.1.2b",text:"6.1.2 — Calculate gravitational potential energy (Ep = mgh)"},
-    {id:"6.1.2c",text:"6.1.2 — Apply conservation of energy to problems"},
-    {id:"6.1.3",text:"6.1.3 — Define specific heat capacity; calculate energy changes (E = mcΔT)"},
-    {id:"6.1.4",text:"6.1.4 — Explain dissipation of energy and ways to reduce unwanted energy transfers"},
-    {id:"6.1.5",text:"6.1.5 — Describe renewable and non-renewable energy resources and their uses"},
-    {id:"6.1.6",text:"6.1.6 — Evaluate the use of different energy resources; describe trends in energy use"},
-    {id:"6.2.1",text:"6.2.1 — Draw and interpret circuit diagrams using standard symbols"},
-    {id:"6.2.2a",text:"6.2.2 — Define current, potential difference and resistance; state Ohm's law (V=IR)"},
-    {id:"6.2.2b",text:"6.2.2 — Describe how to measure current and potential difference in a circuit"},
-    {id:"6.2.3a",text:"6.2.3 — Describe the I-V characteristics of an ohmic conductor, filament lamp and diode"},
-    {id:"6.2.3b",text:"6.2.3 — Describe how LDRs and thermistors work and their uses"},
-    {id:"6.2.4a",text:"6.2.4 — Calculate current, voltage and resistance in series circuits"},
-    {id:"6.2.4b",text:"6.2.4 — Calculate current, voltage and resistance in parallel circuits"},
-    {id:"6.2.5",text:"6.2.5 — Describe mains electricity: AC vs DC, UK frequency (50Hz) and voltage (230V)"},
-    {id:"6.2.6a",text:"6.2.6 — Calculate electrical power (P = IV and P = I²R)"},
-    {id:"6.2.6b",text:"6.2.6 — Calculate energy transferred (E = Pt and E = QV)"},
-    {id:"6.2.7",text:"6.2.7 — Explain the National Grid and the role of transformers"},
-    {id:"6.2.8",text:"6.2.8 — Explain static electricity: charging by friction, electric fields, sparks"},
-    {id:"6.3.1",text:"6.3.1 — Define density; calculate density (ρ = m/V)"},
-    {id:"6.3.2a",text:"6.3.2 — Describe changes of state and explain using particle model"},
-    {id:"6.3.2b",text:"6.3.2 — Define specific latent heat; calculate energy for changes of state (E = mL)"},
-    {id:"6.3.3",text:"6.3.3 — Explain gas pressure using particle model"},
-    {id:"6.4.1a",text:"6.4.1 — Describe the structure of the atom; define atomic number and mass number"},
-    {id:"6.4.1b",text:"6.4.1 — Define isotopes and explain why they exist"},
-    {id:"6.4.2a",text:"6.4.2 — Describe alpha, beta and gamma radiation (nature, charge, mass, penetration, ionisation)"},
-    {id:"6.4.2b",text:"6.4.2 — Write nuclear equations for alpha and beta decay [HT]"},
-    {id:"6.4.3",text:"6.4.3 — Define activity and half-life; perform half-life calculations"},
-    {id:"6.4.4",text:"6.4.4 — Describe uses of radiation and associated hazards"},
-    {id:"6.4.5",text:"6.4.5 — Describe nuclear fission and fusion; explain the difference and energy released"},
-    {id:"6.5.1",text:"6.5.1 — Distinguish between scalar and vector quantities; give examples"},
-    {id:"6.5.2",text:"6.5.2 — Distinguish between contact and non-contact forces; give examples"},
-    {id:"6.5.3",text:"6.5.3 — Define weight; calculate weight (W = mg)"},
-    {id:"6.5.4",text:"6.5.4 — Calculate resultant forces; explain the effect on motion"},
-    {id:"6.5.5",text:"6.5.5 — Calculate work done (W = Fs)"},
-    {id:"6.5.6",text:"6.5.6 — Describe Hooke's law; calculate spring extension (F = ke)"},
-    {id:"6.5.7",text:"6.5.7 — Calculate moments (M = Fd); explain levers and gears"},
-    {id:"6.5.8",text:"6.5.8 — Calculate pressure in fluids (p = F/A and p = hρg) [HT]"},
-    {id:"6.5.9",text:"6.5.9 — Draw and interpret distance-time graphs; calculate speed"},
-    {id:"6.5.10a",text:"6.5.10 — Draw and interpret velocity-time graphs; calculate acceleration"},
-    {id:"6.5.10b",text:"6.5.10 — Calculate distance from area under a velocity-time graph"},
-    {id:"6.5.11a",text:"6.5.11 — State and explain Newton's First Law"},
-    {id:"6.5.11b",text:"6.5.11 — State and apply Newton's Second Law (F = ma)"},
-    {id:"6.5.11c",text:"6.5.11 — State and explain Newton's Third Law with examples"},
-    {id:"6.5.12",text:"6.5.12 — Define thinking, braking and stopping distance; explain factors affecting each"},
-    {id:"6.5.13",text:"6.5.13 — Define momentum (p = mv); apply conservation of momentum [HT]"},
-    {id:"6.6.1a",text:"6.6.1 — Distinguish between transverse and longitudinal waves with examples"},
-    {id:"6.6.1b",text:"6.6.1 — Define amplitude, frequency, wavelength and wave speed; use v = fλ"},
-    {id:"6.6.2",text:"6.6.2 — Describe reflection and refraction of waves"},
-    {id:"6.6.3",text:"6.6.3 — Describe sound waves; explain how sound travels and how we hear"},
-    {id:"6.6.4",text:"6.6.4 — Describe the electromagnetic spectrum in order"},
-    {id:"6.6.5",text:"6.6.5 — Describe the uses and hazards of each part of the electromagnetic spectrum"},
-    {id:"6.7.1",text:"6.7.1 — Describe permanent and induced magnets; draw magnetic field patterns"},
-    {id:"6.7.2",text:"6.7.2 — Explain the motor effect; calculate force on a conductor (F = BIL) [HT]"},
-    {id:"6.7.3",text:"6.7.3 — Describe electromagnetic induction and how a generator works"},
-    {id:"6.7.4",text:"6.7.4 — Explain how a transformer works; calculate output voltage (Vp/Vs = np/ns) [HT]"}
-  ]
+const SPECS = {
+  'aqa-combined': {
+    label: 'AQA GCSE Combined Science: Trilogy',
+    subjects: {
+      bio: {
+        label: 'Biology',
+        topics: [
+          {id:"4.1.1a",text:"4.1.1 — Describe the structure of eukaryotic cells (animal and plant)"},
+          {id:"4.1.1b",text:"4.1.1 — Describe the structure of prokaryotic cells and compare to eukaryotic cells"},
+          {id:"4.1.1c",text:"4.1.1 — Explain the function of sub-cellular structures (nucleus, mitochondria, ribosomes, cell membrane, cell wall, chloroplasts, vacuole)"},
+          {id:"4.1.1d",text:"4.1.1 — Explain how to use a light microscope and calculate magnification"},
+          {id:"4.1.2a",text:"4.1.2 — Describe the structure of a chromosome"},
+          {id:"4.1.2b",text:"4.1.2 — Explain the stages of mitosis and why it is important"},
+          {id:"4.1.2c",text:"4.1.2 — Explain what stem cells are and their potential uses"},
+          {id:"4.1.2d",text:"4.1.2 — Describe the ethical issues around stem cell use"},
+          {id:"4.1.3a",text:"4.1.3 — Define diffusion and describe factors affecting rate of diffusion"},
+          {id:"4.1.3b",text:"4.1.3 — Define osmosis and explain what happens to cells in different solutions"},
+          {id:"4.1.3c",text:"4.1.3 — Define active transport and explain why it requires energy"},
+          {id:"4.2.1",text:"4.2.1 — Describe the levels of organisation: cells, tissues, organs, organ systems"},
+          {id:"4.2.2",text:"4.2.2 — Describe the structure and function of animal tissues"},
+          {id:"4.2.3a",text:"4.2.3 — Describe the structure and function of the heart"},
+          {id:"4.2.3b",text:"4.2.3 — Describe the structure and function of blood vessels (arteries, veins, capillaries)"},
+          {id:"4.2.3c",text:"4.2.3 — Explain how the heart rate is controlled and what affects it"},
+          {id:"4.2.4",text:"4.2.4 — Describe the components of blood and their functions"},
+          {id:"4.2.5",text:"4.2.5 — Explain coronary heart disease and treatments (stents, statins)"},
+          {id:"4.2.6a",text:"4.2.6 — Describe the effects of lifestyle on non-communicable diseases"},
+          {id:"4.2.6b",text:"4.2.6 — Evaluate the relationship between health and disease"},
+          {id:"4.2.7a",text:"4.2.7 — Describe the structure and function of plant tissues"},
+          {id:"4.2.7b",text:"4.2.7 — Explain transpiration and the factors that affect it"},
+          {id:"4.2.7c",text:"4.2.7 — Explain translocation in plants"},
+          {id:"4.3.1a",text:"4.3.1 — Define a pathogen and describe the types (bacteria, viruses, fungi, protists)"},
+          {id:"4.3.1b",text:"4.3.1 — Explain how pathogens are spread and how to reduce transmission"},
+          {id:"4.3.2a",text:"4.3.2 — Describe measles, HIV, tobacco mosaic virus as examples of viral disease"},
+          {id:"4.3.2b",text:"4.3.2 — Describe salmonella and gonorrhoea as examples of bacterial disease"},
+          {id:"4.3.3a",text:"4.3.3 — Describe rose black spot as an example of a fungal disease"},
+          {id:"4.3.3b",text:"4.3.3 — Describe malaria as an example of a protist disease"},
+          {id:"4.3.4",text:"4.3.4 — Describe the human body's defence systems against pathogens"},
+          {id:"4.3.5",text:"4.3.5 — Explain how vaccination works and the importance of herd immunity"},
+          {id:"4.3.6",text:"4.3.6 — Explain how antibiotics work and why antibiotic resistance is a problem"},
+          {id:"4.3.7",text:"4.3.7 — Describe the process of drug discovery and clinical trials"},
+          {id:"4.4.1",text:"4.4.1 — Write and interpret the equation for photosynthesis"},
+          {id:"4.4.2a",text:"4.4.2 — Explain the factors limiting the rate of photosynthesis"},
+          {id:"4.4.2b",text:"4.4.2 — Interpret graphs of limiting factors in photosynthesis"},
+          {id:"4.4.3",text:"4.4.3 — Describe the uses of glucose produced in photosynthesis"},
+          {id:"4.4.4",text:"4.4.4 — Write and interpret the equation for aerobic respiration"},
+          {id:"4.4.5",text:"4.4.5 — Describe anaerobic respiration in animals and yeast"},
+          {id:"4.4.6",text:"4.4.6 — Explain the response to exercise (heart rate, breathing rate, blood flow)"},
+          {id:"4.4.7",text:"4.4.7 — Define metabolism and give examples of metabolic reactions"},
+          {id:"4.5.1",text:"4.5.1 — Define homeostasis and explain its importance"},
+          {id:"4.5.2a",text:"4.5.2 — Describe the structure and function of the nervous system"},
+          {id:"4.5.2b",text:"4.5.2 — Explain a reflex arc with a specific example"},
+          {id:"4.5.2c",text:"4.5.2 — Describe the structure of a synapse and how nerve impulses are transmitted"},
+          {id:"4.5.3",text:"4.5.3 — Describe the structure of the brain and function of key regions"},
+          {id:"4.5.4",text:"4.5.4 — Describe the structure of the eye and explain accommodation"},
+          {id:"4.5.5",text:"4.5.5 — Describe the endocrine system and compare hormonal and nervous control"},
+          {id:"4.5.6",text:"4.5.6 — Explain how blood glucose is regulated by insulin and glucagon"},
+          {id:"4.5.7",text:"4.5.7 — Describe the role of hormones in the menstrual cycle"},
+          {id:"4.5.8",text:"4.5.8 — Evaluate methods of contraception"},
+          {id:"4.5.9",text:"4.5.9 — Explain how hormones are used to treat infertility (IVF) [HT]"},
+          {id:"4.5.10",text:"4.5.10 — Explain negative feedback in hormonal control [HT]"},
+          {id:"4.6.1",text:"4.6.1 — Compare sexual and asexual reproduction"},
+          {id:"4.6.2",text:"4.6.2 — Explain meiosis and how it produces genetic variation"},
+          {id:"4.6.3",text:"4.6.3 — Describe the structure of DNA and explain what a genome is"},
+          {id:"4.6.4",text:"4.6.4 — Explain protein synthesis (transcription and translation) [HT]"},
+          {id:"4.6.5",text:"4.6.5 — Explain what mutations are and how they affect proteins"},
+          {id:"4.6.6",text:"4.6.6 — Explain dominant and recessive inheritance using Punnett squares"},
+          {id:"4.6.7",text:"4.6.7 — Describe inherited disorders: polydactyly and cystic fibrosis"},
+          {id:"4.6.8",text:"4.6.8 — Explain sex determination in humans"},
+          {id:"4.6.9",text:"4.6.9 — Distinguish between continuous and discontinuous variation"},
+          {id:"4.6.10",text:"4.6.10 — Explain natural selection and evolution by Darwin"},
+          {id:"4.6.11",text:"4.6.11 — Describe selective breeding and its uses and risks"},
+          {id:"4.6.12",text:"4.6.12 — Describe genetic engineering and evaluate its uses"},
+          {id:"4.6.13",text:"4.6.13 — Explain how fossils form and what they tell us about evolution"},
+          {id:"4.6.14",text:"4.6.14 — Explain how antibiotic-resistant bacteria evolve by natural selection"},
+          {id:"4.6.15",text:"4.6.15 — Describe the classification system (kingdom to species)"},
+          {id:"4.7.1",text:"4.7.1 — Define a community, ecosystem and habitat; describe interdependence"},
+          {id:"4.7.2",text:"4.7.2 — Explain food chains, food webs and biomass pyramids"},
+          {id:"4.7.3",text:"4.7.3 — Describe abiotic and biotic factors that affect ecosystems"},
+          {id:"4.7.4",text:"4.7.4 — Explain how organisms are adapted to their environment"},
+          {id:"4.7.5",text:"4.7.5 — Explain intraspecific and interspecific competition"},
+          {id:"4.7.6",text:"4.7.6 — Interpret predator-prey graphs and explain the relationship"},
+          {id:"4.7.7a",text:"4.7.7 — Describe the carbon cycle"},
+          {id:"4.7.7b",text:"4.7.7 — Describe the water cycle"},
+          {id:"4.7.7c",text:"4.7.7 — Describe the nitrogen cycle including the role of bacteria"},
+          {id:"4.7.8",text:"4.7.8 — Explain the factors affecting rate of decomposition"},
+          {id:"4.7.9",text:"4.7.9 — Describe the effects of global warming on ecosystems and biodiversity"},
+          {id:"4.7.10",text:"4.7.10 — Describe human impacts on ecosystems (deforestation, pollution, land use)"}
+        ]
+      },
+      chem: {
+        label: 'Chemistry',
+        topics: [
+          {id:"5.1.1",text:"5.1.1 — Define atom, element, compound and mixture; interpret chemical formulae"},
+          {id:"5.1.2",text:"5.1.2 — Describe methods of separating mixtures"},
+          {id:"5.1.3a",text:"5.1.3 — Describe the development of the atomic model (Dalton, Thomson, Rutherford, Bohr)"},
+          {id:"5.1.3b",text:"5.1.3 — Describe Rutherford's alpha particle scattering experiment and what it showed"},
+          {id:"5.1.4",text:"5.1.4 — Describe the properties of protons, neutrons and electrons"},
+          {id:"5.1.5",text:"5.1.5 — Explain electronic structure and how to write electron configurations"},
+          {id:"5.1.6",text:"5.1.6 — Describe the structure and organisation of the periodic table"},
+          {id:"5.1.7a",text:"5.1.7 — Explain the properties and trends in Group 1 (alkali metals)"},
+          {id:"5.1.7b",text:"5.1.7 — Explain the properties and trends in Group 7 (halogens)"},
+          {id:"5.1.7c",text:"5.1.7 — Explain the properties of Group 0 (noble gases)"},
+          {id:"5.1.8",text:"5.1.8 — Compare the properties of metals and non-metals"},
+          {id:"5.1.9",text:"5.1.9 — Describe the properties and uses of transition metals"},
+          {id:"5.2.1a",text:"5.2.1 — Explain ionic bonding and predict the formulae of ionic compounds"},
+          {id:"5.2.1b",text:"5.2.1 — Explain covalent bonding and draw dot-and-cross diagrams"},
+          {id:"5.2.1c",text:"5.2.1 — Explain metallic bonding and relate it to properties of metals"},
+          {id:"5.2.2",text:"5.2.2 — Describe the structure and properties of ionic compounds"},
+          {id:"5.2.3a",text:"5.2.3 — Describe simple molecular structures and explain why they have low melting points"},
+          {id:"5.2.3b",text:"5.2.3 — Describe giant covalent structures (diamond, graphite, silicon dioxide)"},
+          {id:"5.2.4",text:"5.2.4 — Describe the structure of polymers and explain their properties"},
+          {id:"5.2.5",text:"5.2.5 — Describe giant metallic structures and explain metallic properties"},
+          {id:"5.2.6a",text:"5.2.6 — Explain the structure and properties of graphene and fullerenes"},
+          {id:"5.3.1",text:"5.3.1 — Explain conservation of mass and balance chemical equations"},
+          {id:"5.3.2",text:"5.3.2 — Calculate relative formula mass (Mr) from atomic masses"},
+          {id:"5.3.3",text:"5.3.3 — Define the mole and calculate moles, mass and concentration"},
+          {id:"5.3.4",text:"5.3.4 — Explain limiting reactants and calculate quantities [HT]"},
+          {id:"5.3.5",text:"5.3.5 — Calculate percentage yield and atom economy"},
+          {id:"5.4.1",text:"5.4.1 — Describe the reactivity series and predict reactions of metals"},
+          {id:"5.4.2a",text:"5.4.2 — Explain extraction of metals by reduction and electrolysis"},
+          {id:"5.4.2b",text:"5.4.2 — Explain why aluminium is extracted by electrolysis"},
+          {id:"5.4.3",text:"5.4.3 — Define oxidation and reduction in terms of oxygen and electrons (OIL RIG)"},
+          {id:"5.4.4",text:"5.4.4 — Describe reactions of acids with metals, metal oxides, hydroxides and carbonates"},
+          {id:"5.4.5",text:"5.4.5 — Define pH scale; describe use of indicators and universal indicator"},
+          {id:"5.4.6a",text:"5.4.6 — Explain electrolysis of molten and aqueous ionic compounds"},
+          {id:"5.4.6b",text:"5.4.6 — Predict products of electrolysis at anode and cathode"},
+          {id:"5.5.1",text:"5.5.1 — Define exothermic and endothermic reactions with examples"},
+          {id:"5.5.2",text:"5.5.2 — Calculate energy change from bond energies [HT]"},
+          {id:"5.5.3",text:"5.5.3 — Describe hydrogen fuel cells and compare to batteries"},
+          {id:"5.6.1",text:"5.6.1 — Describe how to measure rate of reaction"},
+          {id:"5.6.2",text:"5.6.2 — Explain how temperature, concentration, surface area and catalysts affect rate"},
+          {id:"5.6.3",text:"5.6.3 — Explain collision theory and activation energy"},
+          {id:"5.6.4",text:"5.6.4 — Explain reversible reactions and dynamic equilibrium [HT]"},
+          {id:"5.7.1",text:"5.7.1 — Describe crude oil as a mixture of hydrocarbons; define alkanes"},
+          {id:"5.7.2",text:"5.7.2 — Explain fractional distillation of crude oil and how it works"},
+          {id:"5.7.3",text:"5.7.3 — Describe the properties and uses of different fractions"},
+          {id:"5.7.4",text:"5.7.4 — Explain cracking and why it is useful"},
+          {id:"5.7.5",text:"5.7.5 — Describe alkenes and addition polymerisation"},
+          {id:"5.8.1",text:"5.8.1 — Define pure substance and formulation; give examples"},
+          {id:"5.8.2",text:"5.8.2 — Explain paper chromatography and calculate Rf values"},
+          {id:"5.8.3",text:"5.8.3 — Describe tests for hydrogen, oxygen, carbon dioxide and chlorine"},
+          {id:"5.8.4",text:"5.8.4 — Describe flame tests and tests for common ions [HT]"},
+          {id:"5.9.1",text:"5.9.1 — Describe the evolution of the Earth's atmosphere and current composition"},
+          {id:"5.9.2",text:"5.9.2 — Explain the greenhouse effect and named greenhouse gases"},
+          {id:"5.9.3",text:"5.9.3 — Evaluate the evidence for and impact of climate change"},
+          {id:"5.9.4",text:"5.9.4 — Describe atmospheric pollutants and their sources"},
+          {id:"5.10.1",text:"5.10.1 — Distinguish between finite and renewable resources"},
+          {id:"5.10.2",text:"5.10.2 — Describe water treatment (filtration, sedimentation, chlorination)"},
+          {id:"5.10.3",text:"5.10.3 — Explain the Haber process and conditions used; describe NPK fertilisers"},
+          {id:"5.10.4",text:"5.10.4 — Describe and evaluate a life cycle assessment (LCA)"},
+          {id:"5.10.5",text:"5.10.5 — Compare properties and uses of ceramics, polymers and composites"},
+          {id:"5.10.6",text:"5.10.6 — Describe corrosion and methods of prevention"}
+        ]
+      },
+      phys: {
+        label: 'Physics',
+        topics: [
+          {id:"6.1.1",text:"6.1.1 — Describe the different energy stores and energy transfer pathways"},
+          {id:"6.1.2a",text:"6.1.2 — Calculate kinetic energy (Ek = ½mv²)"},
+          {id:"6.1.2b",text:"6.1.2 — Calculate gravitational potential energy (Ep = mgh)"},
+          {id:"6.1.2c",text:"6.1.2 — Apply conservation of energy to problems"},
+          {id:"6.1.3",text:"6.1.3 — Define specific heat capacity; calculate energy changes (E = mcΔT)"},
+          {id:"6.1.4",text:"6.1.4 — Explain dissipation of energy and ways to reduce unwanted energy transfers"},
+          {id:"6.1.5",text:"6.1.5 — Describe renewable and non-renewable energy resources and their uses"},
+          {id:"6.1.6",text:"6.1.6 — Evaluate the use of different energy resources; describe trends in energy use"},
+          {id:"6.2.1",text:"6.2.1 — Draw and interpret circuit diagrams using standard symbols"},
+          {id:"6.2.2a",text:"6.2.2 — Define current, potential difference and resistance; state Ohm's law (V=IR)"},
+          {id:"6.2.2b",text:"6.2.2 — Describe how to measure current and potential difference in a circuit"},
+          {id:"6.2.3a",text:"6.2.3 — Describe the I-V characteristics of an ohmic conductor, filament lamp and diode"},
+          {id:"6.2.3b",text:"6.2.3 — Describe how LDRs and thermistors work and their uses"},
+          {id:"6.2.4a",text:"6.2.4 — Calculate current, voltage and resistance in series circuits"},
+          {id:"6.2.4b",text:"6.2.4 — Calculate current, voltage and resistance in parallel circuits"},
+          {id:"6.2.5",text:"6.2.5 — Describe mains electricity: AC vs DC, UK frequency (50Hz) and voltage (230V)"},
+          {id:"6.2.6a",text:"6.2.6 — Calculate electrical power (P = IV and P = I²R)"},
+          {id:"6.2.6b",text:"6.2.6 — Calculate energy transferred (E = Pt and E = QV)"},
+          {id:"6.2.7",text:"6.2.7 — Explain the National Grid and the role of transformers"},
+          {id:"6.2.8",text:"6.2.8 — Explain static electricity: charging by friction, electric fields, sparks"},
+          {id:"6.3.1",text:"6.3.1 — Define density; calculate density (ρ = m/V)"},
+          {id:"6.3.2a",text:"6.3.2 — Describe changes of state and explain using particle model"},
+          {id:"6.3.2b",text:"6.3.2 — Define specific latent heat; calculate energy for changes of state (E = mL)"},
+          {id:"6.3.3",text:"6.3.3 — Explain gas pressure using particle model"},
+          {id:"6.4.1a",text:"6.4.1 — Describe the structure of the atom; define atomic number and mass number"},
+          {id:"6.4.1b",text:"6.4.1 — Define isotopes and explain why they exist"},
+          {id:"6.4.2a",text:"6.4.2 — Describe alpha, beta and gamma radiation (nature, charge, mass, penetration, ionisation)"},
+          {id:"6.4.2b",text:"6.4.2 — Write nuclear equations for alpha and beta decay [HT]"},
+          {id:"6.4.3",text:"6.4.3 — Define activity and half-life; perform half-life calculations"},
+          {id:"6.4.4",text:"6.4.4 — Describe uses of radiation and associated hazards"},
+          {id:"6.4.5",text:"6.4.5 — Describe nuclear fission and fusion; explain the difference and energy released"},
+          {id:"6.5.1",text:"6.5.1 — Distinguish between scalar and vector quantities; give examples"},
+          {id:"6.5.2",text:"6.5.2 — Distinguish between contact and non-contact forces; give examples"},
+          {id:"6.5.3",text:"6.5.3 — Define weight; calculate weight (W = mg)"},
+          {id:"6.5.4",text:"6.5.4 — Calculate resultant forces; explain the effect on motion"},
+          {id:"6.5.5",text:"6.5.5 — Calculate work done (W = Fs)"},
+          {id:"6.5.6",text:"6.5.6 — Describe Hooke's law; calculate spring extension (F = ke)"},
+          {id:"6.5.7",text:"6.5.7 — Calculate moments (M = Fd); explain levers and gears"},
+          {id:"6.5.8",text:"6.5.8 — Calculate pressure in fluids (p = F/A and p = hρg) [HT]"},
+          {id:"6.5.9",text:"6.5.9 — Draw and interpret distance-time graphs; calculate speed"},
+          {id:"6.5.10a",text:"6.5.10 — Draw and interpret velocity-time graphs; calculate acceleration"},
+          {id:"6.5.10b",text:"6.5.10 — Calculate distance from area under a velocity-time graph"},
+          {id:"6.5.11a",text:"6.5.11 — State and explain Newton's First Law"},
+          {id:"6.5.11b",text:"6.5.11 — State and apply Newton's Second Law (F = ma)"},
+          {id:"6.5.11c",text:"6.5.11 — State and explain Newton's Third Law with examples"},
+          {id:"6.5.12",text:"6.5.12 — Define thinking, braking and stopping distance; explain factors affecting each"},
+          {id:"6.5.13",text:"6.5.13 — Define momentum (p = mv); apply conservation of momentum [HT]"},
+          {id:"6.6.1a",text:"6.6.1 — Distinguish between transverse and longitudinal waves with examples"},
+          {id:"6.6.1b",text:"6.6.1 — Define amplitude, frequency, wavelength and wave speed; use v = fλ"},
+          {id:"6.6.2",text:"6.6.2 — Describe reflection and refraction of waves"},
+          {id:"6.6.3",text:"6.6.3 — Describe sound waves; explain how sound travels and how we hear"},
+          {id:"6.6.4",text:"6.6.4 — Describe the electromagnetic spectrum in order"},
+          {id:"6.6.5",text:"6.6.5 — Describe the uses and hazards of each part of the electromagnetic spectrum"},
+          {id:"6.7.1",text:"6.7.1 — Describe permanent and induced magnets; draw magnetic field patterns"},
+          {id:"6.7.2",text:"6.7.2 — Explain the motor effect; calculate force on a conductor (F = BIL) [HT]"},
+          {id:"6.7.3",text:"6.7.3 — Describe electromagnetic induction and how a generator works"},
+          {id:"6.7.4",text:"6.7.4 — Explain how a transformer works; calculate output voltage (Vp/Vs = np/ns) [HT]"}
+        ]
+      }
+    }
+  },
+  'aqa-separate-physics': {
+    label: 'AQA GCSE Separate Science: Physics',
+    subjects: {
+      phys: {
+        label: 'Physics',
+        topics: [
+          {id:"sp6.1.1",text:"6.1.1 — Describe the different energy stores and energy transfer pathways"},
+          {id:"sp6.1.2a",text:"6.1.2 — Calculate kinetic energy (Ek = ½mv²)"},
+          {id:"sp6.1.2b",text:"6.1.2 — Calculate gravitational potential energy (Ep = mgh)"},
+          {id:"sp6.1.2c",text:"6.1.2 — Apply conservation of energy to problems"},
+          {id:"sp6.1.3",text:"6.1.3 — Define specific heat capacity; calculate energy changes (E = mcΔT)"},
+          {id:"sp6.1.4",text:"6.1.4 — Explain dissipation of energy and ways to reduce unwanted energy transfers"},
+          {id:"sp6.1.5",text:"6.1.5 — Describe renewable and non-renewable energy resources and their uses"},
+          {id:"sp6.1.6",text:"6.1.6 — Evaluate the use of different energy resources; describe trends in energy use"},
+          {id:"sp6.2.1",text:"6.2.1 — Draw and interpret circuit diagrams using standard symbols"},
+          {id:"sp6.2.2a",text:"6.2.2 — Define current, potential difference and resistance; state Ohm's law (V=IR)"},
+          {id:"sp6.2.2b",text:"6.2.2 — Describe how to measure current and potential difference in a circuit"},
+          {id:"sp6.2.3a",text:"6.2.3 — Describe the I-V characteristics of an ohmic conductor, filament lamp and diode"},
+          {id:"sp6.2.3b",text:"6.2.3 — Describe how LDRs and thermistors work and their uses"},
+          {id:"sp6.2.4a",text:"6.2.4 — Calculate current, voltage and resistance in series circuits"},
+          {id:"sp6.2.4b",text:"6.2.4 — Calculate current, voltage and resistance in parallel circuits"},
+          {id:"sp6.2.5",text:"6.2.5 — Describe mains electricity: AC vs DC, UK frequency (50Hz) and voltage (230V)"},
+          {id:"sp6.2.6a",text:"6.2.6 — Calculate electrical power (P = IV and P = I²R)"},
+          {id:"sp6.2.6b",text:"6.2.6 — Calculate energy transferred (E = Pt and E = QV)"},
+          {id:"sp6.2.7",text:"6.2.7 — Explain the National Grid and the role of transformers"},
+          {id:"sp6.2.8",text:"6.2.8 — Explain static electricity: charging by friction, electric fields, sparks"},
+          {id:"sp6.3.1",text:"6.3.1 — Define density; calculate density (ρ = m/V)"},
+          {id:"sp6.3.2a",text:"6.3.2 — Describe changes of state and explain using particle model"},
+          {id:"sp6.3.2b",text:"6.3.2 — Define specific latent heat; calculate energy for changes of state (E = mL)"},
+          {id:"sp6.3.3",text:"6.3.3 — Explain gas pressure using particle model; use pV = constant"},
+          {id:"sp6.4.1a",text:"6.4.1 — Describe the structure of the atom; define atomic number and mass number"},
+          {id:"sp6.4.1b",text:"6.4.1 — Define isotopes and explain why they exist"},
+          {id:"sp6.4.2a",text:"6.4.2 — Describe alpha, beta and gamma radiation (nature, charge, mass, penetration, ionisation)"},
+          {id:"sp6.4.2b",text:"6.4.2 — Write nuclear equations for alpha and beta decay"},
+          {id:"sp6.4.3",text:"6.4.3 — Define activity and half-life; perform half-life calculations"},
+          {id:"sp6.4.4",text:"6.4.4 — Describe uses of radiation and associated hazards"},
+          {id:"sp6.4.5",text:"6.4.5 — Describe nuclear fission and fusion; explain chain reactions"},
+          {id:"sp6.5.1",text:"6.5.1 — Distinguish between scalar and vector quantities; give examples"},
+          {id:"sp6.5.2",text:"6.5.2 — Distinguish between contact and non-contact forces; give examples"},
+          {id:"sp6.5.3",text:"6.5.3 — Define weight; calculate weight (W = mg); describe gravitational fields"},
+          {id:"sp6.5.4",text:"6.5.4 — Calculate resultant forces; resolve forces into components"},
+          {id:"sp6.5.5",text:"6.5.5 — Calculate work done (W = Fs); explain energy transfer"},
+          {id:"sp6.5.6",text:"6.5.6 — Describe Hooke's law; calculate spring extension (F = ke); define elastic limit"},
+          {id:"sp6.5.7",text:"6.5.7 — Calculate moments (M = Fd); explain levers and gears as force multipliers"},
+          {id:"sp6.5.8",text:"6.5.8 — Calculate pressure in fluids (p = F/A and p = hρg); explain upthrust"},
+          {id:"sp6.5.9",text:"6.5.9 — Draw and interpret distance-time graphs; calculate speed from gradient"},
+          {id:"sp6.5.10a",text:"6.5.10 — Draw and interpret velocity-time graphs; calculate acceleration from gradient"},
+          {id:"sp6.5.10b",text:"6.5.10 — Calculate distance from area under a velocity-time graph"},
+          {id:"sp6.5.11a",text:"6.5.11 — State and explain Newton's First Law"},
+          {id:"sp6.5.11b",text:"6.5.11 — State and apply Newton's Second Law (F = ma)"},
+          {id:"sp6.5.11c",text:"6.5.11 — State and explain Newton's Third Law with examples"},
+          {id:"sp6.5.12",text:"6.5.12 — Define thinking, braking and stopping distance; explain factors affecting each"},
+          {id:"sp6.5.13",text:"6.5.13 — Define momentum (p = mv); apply conservation of momentum; explain safety features"},
+          {id:"sp6.6.1a",text:"6.6.1 — Distinguish between transverse and longitudinal waves with examples"},
+          {id:"sp6.6.1b",text:"6.6.1 — Define amplitude, frequency, wavelength and wave speed; use v = fλ"},
+          {id:"sp6.6.2",text:"6.6.2 — Describe reflection and refraction of waves; explain total internal reflection"},
+          {id:"sp6.6.3",text:"6.6.3 — Describe sound waves; explain echo, ultrasound and seismic waves"},
+          {id:"sp6.6.4",text:"6.6.4 — Describe the electromagnetic spectrum in order; state approximate wavelengths"},
+          {id:"sp6.6.5",text:"6.6.5 — Describe the uses and hazards of each part of the electromagnetic spectrum"},
+          {id:"sp6.6.6",text:"6.6.6 — Explain emission and absorption of radiation; describe black body radiation"},
+          {id:"sp6.7.1",text:"6.7.1 — Describe permanent and induced magnets; draw magnetic field patterns"},
+          {id:"sp6.7.2",text:"6.7.2 — Explain the motor effect; calculate force on a conductor (F = BIL)"},
+          {id:"sp6.7.3",text:"6.7.3 — Describe electromagnetic induction; explain how generators and microphones work"},
+          {id:"sp6.7.4",text:"6.7.4 — Explain how a transformer works; calculate output voltage and current"},
+          {id:"sp6.8.1",text:"6.8.1 — Describe the life cycle of stars of different masses"},
+          {id:"sp6.8.2",text:"6.8.2 — Explain how the universe began (Big Bang theory) and supporting evidence"},
+          {id:"sp6.8.3",text:"6.8.3 — Describe red-shift and explain what it tells us about the universe"},
+          {id:"sp6.8.4",text:"6.8.4 — Describe orbital motion; explain circular motion and gravitational force"}
+        ]
+      }
+    }
+  },
+  'edexcel-alevel-physics': {
+    label: 'Edexcel A Level Physics',
+    subjects: {
+      phys: {
+        label: 'Physics',
+        topics: [
+          {id:"eal1.1",text:"Topic 1 — Define SI base units and use of prefixes (pico to giga)"},
+          {id:"eal1.2",text:"Topic 1 — Distinguish scalar and vector quantities; add and resolve vectors"},
+          {id:"eal1.3",text:"Topic 1 — Describe and interpret graphs (gradient, area, tangent)"},
+          {id:"eal1.4",text:"Topic 1 — Use and rearrange equations including quadratics"},
+          {id:"eal2.1",text:"Topic 2 — Use SUVAT equations for uniform acceleration"},
+          {id:"eal2.2",text:"Topic 2 — Analyse projectile motion as independent horizontal and vertical components"},
+          {id:"eal2.3",text:"Topic 2 — Draw and interpret displacement-time and velocity-time graphs"},
+          {id:"eal2.4",text:"Topic 2 — Define and calculate acceleration including free fall (g = 9.81 m/s²)"},
+          {id:"eal3.1",text:"Topic 3 — State and apply Newton's three laws of motion"},
+          {id:"eal3.2",text:"Topic 3 — Define and apply conservation of momentum (p = mv)"},
+          {id:"eal3.3",text:"Topic 3 — Distinguish elastic and inelastic collisions; apply conservation of energy"},
+          {id:"eal3.4",text:"Topic 3 — Define impulse (FΔt = Δp); apply to collision problems"},
+          {id:"eal4.1",text:"Topic 4 — Calculate work done (W = Fd cosθ); define power (P = Fv)"},
+          {id:"eal4.2",text:"Topic 4 — Apply conservation of energy; calculate efficiency"},
+          {id:"eal4.3",text:"Topic 4 — Calculate KE (½mv²) and GPE (mgh); apply to energy problems"},
+          {id:"eal5.1",text:"Topic 5 — Define stress, strain and Young modulus; perform calculations"},
+          {id:"eal5.2",text:"Topic 5 — Describe Hooke's law; interpret force-extension graphs including elastic limit"},
+          {id:"eal5.3",text:"Topic 5 — Distinguish elastic and plastic deformation; describe loading and unloading"},
+          {id:"eal5.4",text:"Topic 5 — Calculate elastic strain energy (½Fe and ½ke²)"},
+          {id:"eal6.1",text:"Topic 6 — Define current (I = ΔQ/Δt) and potential difference (W = QV)"},
+          {id:"eal6.2",text:"Topic 6 — State and apply Ohm's law; calculate resistance"},
+          {id:"eal6.3",text:"Topic 6 — Calculate resistivity (R = ρL/A); explain factors affecting resistance"},
+          {id:"eal6.4",text:"Topic 6 — Analyse series and parallel circuits using Kirchhoff's laws"},
+          {id:"eal6.5",text:"Topic 6 — Define and calculate EMF and internal resistance (ε = I(R+r))"},
+          {id:"eal6.6",text:"Topic 6 — Calculate electrical power (P = IV = I²R = V²/R)"},
+          {id:"eal7.1",text:"Topic 7 — Describe the photoelectric effect and explain using photon model"},
+          {id:"eal7.2",text:"Topic 7 — Calculate photon energy (E = hf) and use E = hf = hc/λ"},
+          {id:"eal7.3",text:"Topic 7 — Explain wave-particle duality; describe electron diffraction"},
+          {id:"eal7.4",text:"Topic 7 — Use de Broglie wavelength (λ = h/mv)"},
+          {id:"eal7.5",text:"Topic 7 — Explain atomic energy levels; describe emission and absorption spectra"},
+          {id:"eal8.1",text:"Topic 8 — Describe transverse and longitudinal waves; define all wave properties"},
+          {id:"eal8.2",text:"Topic 8 — Apply wave equation (v = fλ); calculate wave properties"},
+          {id:"eal8.3",text:"Topic 8 — Explain superposition, interference and path difference conditions"},
+          {id:"eal8.4",text:"Topic 8 — Explain standing waves; identify nodes and antinodes"},
+          {id:"eal8.5",text:"Topic 8 — Use diffraction grating equation (nλ = d sinθ)"},
+          {id:"eal8.6",text:"Topic 8 — Describe refraction; use Snell's law (n₁sinθ₁ = n₂sinθ₂)"},
+          {id:"eal8.7",text:"Topic 8 — Explain total internal reflection; calculate critical angle"},
+          {id:"eal9.1",text:"Topic 9 — Describe the nuclear model of the atom; define atomic and mass number"},
+          {id:"eal9.2",text:"Topic 9 — Describe alpha, beta-minus, beta-plus and gamma decay; write equations"},
+          {id:"eal9.3",text:"Topic 9 — Define activity and decay constant (A = λN); use N = N₀e^(-λt)"},
+          {id:"eal9.4",text:"Topic 9 — Define and calculate half-life (t½ = ln2/λ)"},
+          {id:"eal9.5",text:"Topic 9 — Calculate binding energy and mass defect; explain nuclear stability"},
+          {id:"eal9.6",text:"Topic 9 — Describe fission and fusion; explain energy release using E = mc²"},
+          {id:"eal10.1",text:"Topic 10 — Define gravitational field strength (g = F/m); describe radial fields"},
+          {id:"eal10.2",text:"Topic 10 — State and apply Newton's law of gravitation (F = Gm₁m₂/r²)"},
+          {id:"eal10.3",text:"Topic 10 — Calculate gravitational potential (V = -GM/r) and potential energy"},
+          {id:"eal10.4",text:"Topic 10 — Derive and apply orbital speed and period equations"},
+          {id:"eal10.5",text:"Topic 10 — Explain geostationary and low Earth orbits and their uses"},
+          {id:"eal11.1",text:"Topic 11 — Define electric field strength (E = F/Q); describe radial and uniform fields"},
+          {id:"eal11.2",text:"Topic 11 — Apply Coulomb's law (F = kQ₁Q₂/r²)"},
+          {id:"eal11.3",text:"Topic 11 — Calculate electric potential (V = kQ/r) and potential energy"},
+          {id:"eal11.4",text:"Topic 11 — Describe capacitor charging and discharging; use Q = CV"},
+          {id:"eal11.5",text:"Topic 11 — Calculate energy stored in a capacitor (E = ½CV²)"},
+          {id:"eal11.6",text:"Topic 11 — Use exponential decay equations for capacitor discharge"},
+          {id:"eal12.1",text:"Topic 12 — Describe magnetic fields; draw field patterns around wires and coils"},
+          {id:"eal12.2",text:"Topic 12 — Apply the motor effect (F = BIL sinθ); use Fleming's left-hand rule"},
+          {id:"eal12.3",text:"Topic 12 — Calculate force on a moving charge (F = BQv sinθ)"},
+          {id:"eal12.4",text:"Topic 12 — State and apply Faraday's and Lenz's laws of electromagnetic induction"},
+          {id:"eal12.5",text:"Topic 12 — Calculate flux and flux linkage (Φ = BAcosθ); use EMF = -ΔNΦ/Δt"},
+          {id:"eal12.6",text:"Topic 12 — Explain how transformers work; apply transformer equations"},
+          {id:"eal13.1",text:"Topic 13 — Define SHM; use a = -(2πf)²x and x = Acosωt"},
+          {id:"eal13.2",text:"Topic 13 — Calculate maximum speed and acceleration in SHM"},
+          {id:"eal13.3",text:"Topic 13 — Describe energy changes in SHM; sketch KE and PE graphs"},
+          {id:"eal13.4",text:"Topic 13 — Explain free, forced and resonant oscillations; describe damping"}
+        ]
+      }
+    }
+  }
 };
 
-let user=null,session=null,classes=[],curClass=null,curSubj='bio',quiz=[],lastSettings={};
+// Helper: get topics for current spec and subject
+function getTopics(specKey, subjKey) {
+  return SPECS[specKey]?.subjects[subjKey]?.topics || [];
+}
+
+let user=null,session=null,classes=[],curClass=null,curSpec='aqa-combined',curSubj='bio',quiz=[],lastSettings={};
 
 async function login(){
   const email=document.getElementById('login-email').value.trim();
@@ -482,7 +650,12 @@ async function bootApp(){
   document.getElementById('main-app').style.display='block';
   document.getElementById('nav-email').textContent=user.email;
   await loadClasses();
-  renderClsSel();renderTopicList();renderTags();
+  renderClsSel();
+  // Init subject dropdown for default spec
+  const subjects=SPECS[curSpec].subjects;
+  const subjSel=document.getElementById('subj-sel');
+  subjSel.innerHTML=Object.entries(subjects).map(([k,v])=>'<option value="'+k+'">'+v.label+'</option>').join('');
+  renderTopicList();renderTags();
 }
 async function init(){
   const {data:{session:s}}=await sb.auth.getSession();
@@ -516,10 +689,18 @@ async function switchClass(){
   renderTags();renderTopicList();renderStats();renderRev();renderHist();
 }
 
-function switchSubj(subj,el){
-  curSubj=subj;
-  document.querySelectorAll('.subj-tab').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
+function switchSpec(){
+  curSpec=document.getElementById('spec-sel').value;
+  // Rebuild subject dropdown
+  const subjects=SPECS[curSpec].subjects;
+  const subjSel=document.getElementById('subj-sel');
+  subjSel.innerHTML=Object.entries(subjects).map(([k,v])=>'<option value="'+k+'">'+v.label+'</option>').join('');
+  curSubj=Object.keys(subjects)[0];
+  document.getElementById('topic-search').value='';
+  renderTopicList();
+}
+function switchSubj(){
+  curSubj=document.getElementById('subj-sel').value;
   document.getElementById('topic-search').value='';
   renderTopicList();
 }
@@ -527,7 +708,7 @@ function renderTopicList(){
   const q=(document.getElementById('topic-search').value||'').toLowerCase();
   const list=document.getElementById('topic-list');
   const addedIds=curClass?(curClass.taught_topics||[]).map(t=>t.spec_id):[];
-  const items=TOPICS[curSubj].filter(t=>!q||t.text.toLowerCase().includes(q));
+  const items=getTopics(curSpec,curSubj).filter(t=>!q||t.text.toLowerCase().includes(q));
   if(!items.length){list.innerHTML='<div class="no-results">No spec points match</div>';return;}
   list.innerHTML=items.map(t=>{
     const added=addedIds.includes(t.id);
@@ -554,10 +735,19 @@ async function removeTopic(id){
   renderTags();renderTopicList();
 }
 function getTopicById(id){
-  for(const subj of Object.values(TOPICS)){const f=subj.find(t=>t.id===id);if(f)return f;}
+  for(const spec of Object.values(SPECS)){
+    for(const subj of Object.values(spec.subjects)){
+      const f=subj.topics.find(t=>t.id===id);if(f)return f;
+    }
+  }
   return{id,text:id};
 }
-function subjOf(id){return id.startsWith('4')?'bio':id.startsWith('5')?'chem':'phys';}
+function subjOf(id){
+  if(id.startsWith('4'))return 'bio';
+  if(id.startsWith('5'))return 'chem';
+  if(id.startsWith('6')||id.startsWith('sp'))return 'phys';
+  return 'other';
+}
 function renderTags(){
   const w=document.getElementById('tags-wrap');
   const cnt=document.getElementById('topics-count');
@@ -671,14 +861,14 @@ async function generate(){
   const total=Math.max(1,parseInt(document.getElementById('q-total').value)||5);
   const mc=Math.min(parseInt(document.getElementById('q-mc').value)||0,total);
   const incFlag=document.getElementById('inc-flag').value==='1';
-  lastSettings={tier,total,mc};
+  lastSettings={tier,total,mc,spec:curSpec};
   const flagged=incFlag?(curClass.flagged_questions||[]).filter(f=>(f.pct_correct||0)<60).slice(0,3):[];
   const topicObjs=topics.map(t=>({id:t.spec_id,text:t.spec_text}));
   try{
     const resp=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
-      body:JSON.stringify({topics:topicObjs,tier,total,mc,flagged:flagged.map(f=>({q:f.question})),class_id:curClass.id})
+      body:JSON.stringify({topics:topicObjs,tier,total,mc,flagged:flagged.map(f=>({q:f.question})),class_id:curClass.id,spec_label:SPECS[curSpec].label})
     });
     if(!resp.ok){const e=await resp.json();throw new Error(e.error||'HTTP '+resp.status);}
     const data=await resp.json();
