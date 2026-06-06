@@ -22,7 +22,6 @@ export default async function handler(req, res) {
     // Spaced repetition weighting
     const now = Date.now();
     const DAY = 86400000;
- 
     const weighted = topics.map(t => {
       const taught = t.taught_date ? new Date(t.taught_date).getTime() : now;
       const daysAgo = Math.max(1, (now - taught) / DAY);
@@ -32,92 +31,80 @@ export default async function handler(req, res) {
       return { ...t, weight };
     });
  
-    // Always 10-15 questions, scaled by number of topics
     const total = Math.min(15, Math.max(10, Math.floor(topics.length * 0.5)));
+    const recall = Math.round(total * 0.4);
+    const apply = Math.round(total * 0.35);
+    const extend = total - recall - apply;
+    const mcCount = Math.round(recall * 0.5);
  
-    // Select topics weighted by spaced repetition — pick more than total so topics repeat across difficulty bands
-    const poolSize = Math.min(weighted.length, total);
-    const selected = weightedSample(weighted, poolSize);
+    const selected = weightedSample(weighted, Math.min(weighted.length, total));
     const specList = selected.map(t => t.text).join('\n');
     const specName = spec_label || 'AQA GCSE Combined Science: Trilogy';
  
-    // Split into difficulty bands
-    const recall = Math.round(total * 0.4);      // ~40% simple recall
-    const apply = Math.round(total * 0.35);       // ~35% application/explanation
-    const extend = total - recall - apply;         // ~25% extended/synoptic
-    const mcCount = Math.round(recall * 0.5);     // ~half of recall questions are MC
- 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 6000,
-        system: `You are an expert teacher and examiner for ${specName}. You write homework retrieval questions that increase in difficulty from simple recall to application and explanation. Students complete this independently at home. Model answers must use exact specification language. Return ONLY valid JSON — no markdown, no preamble, no commentary.`,
-        messages: [{
-          role: 'user',
-          content: `Generate exactly ${total} homework retrieval questions for ${specName} (${tier} tier), arranged in order of increasing difficulty.
- 
-Spec points to draw from (selected using spaced repetition — prioritise these):
-${specList}
- 
-The ${total} questions must be structured as follows:
- 
-SECTION 1 — Simple recall (${recall} questions, difficulty: easy)
-- ${mcCount} multiple choice questions (type: "mc") testing direct recall of facts, definitions, equations
-- ${recall - mcCount} short answer questions (type: "short") requiring one or two sentence recall answers
-- Examples: "What is the unit of resistance?", "State the equation for kinetic energy", "What charge does a neutron carry?"
- 
-SECTION 2 — Application (${apply} questions, difficulty: medium)
-- All short answer (type: "short")
-- Require students to apply knowledge or perform calculations
-- Examples: "Calculate the kinetic energy of a 5kg object moving at 3 m/s", "Explain why resistance increases with temperature in a metal"
- 
-SECTION 3 — Explanation and analysis (${extend} questions, difficulty: hard)
-- All short answer (type: "short")
-- Require extended explanation, evaluation or analysis
-- Examples: "Explain why the National Grid uses high voltage for transmission", "A student claims that heavier objects fall faster. Evaluate this claim using Newton's laws"
- 
-Rules:
-- Questions must be drawn from the spec points listed above
-- Questions must be self-contained — students have no teacher support at home
-- Model answers must use AQA specification language and be concise but complete
-- Include a "difficulty" field: "recall", "application" or "explanation"
-- Include spec_id for each question
- 
-Return ONLY this JSON structure:
-{"questions":[{"type":"mc","difficulty":"recall","spec_id":"6.2.2a","topic":"Current and resistance","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"B","model_answer":"..."},{"type":"short","difficulty":"recall","spec_id":"6.1.1","topic":"Energy stores","question":"...","model_answer":"..."},{"type":"short","difficulty":"application","spec_id":"6.1.2a","topic":"Kinetic energy","question":"...","model_answer":"..."},{"type":"short","difficulty":"explanation","spec_id":"6.2.7","topic":"National Grid","question":"...","model_answer":"..."}]}`
-        }]
-      })
-    });
- 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return res.status(500).json({ error: err.error?.message || `API error ${response.status}` });
+    // Helper to call Claude
+    async function callClaude(prompt, maxTokens = 3000) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          system: `You are an expert teacher for ${specName}. Return ONLY valid JSON arrays — no markdown, no preamble, no extra text.`,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      if (!r.ok) throw new Error(`API error ${r.status}`);
+      const d = await r.json();
+      let txt = d.content.filter(c => c.type === 'text').map(c => c.text).join('');
+      txt = txt.replace(/```json|```/g, '').trim();
+      // Repair if truncated
+      if (!txt.endsWith(']')) {
+        const last = txt.lastIndexOf('}');
+        if (last > -1) txt = txt.substring(0, last + 1) + ']';
+      }
+      return JSON.parse(txt);
     }
  
-    const data = await response.json();
-    let txt = data.content.filter(c => c.type === 'text').map(c => c.text).join('');
-    txt = txt.replace(/```json|```/g, '').trim();
+    // Call 1: Recall questions
+    const recallPrompt = `Generate exactly ${recall} recall questions for ${specName} (${tier} tier).
+Spec points: ${specList}
+- ${mcCount} must be multiple choice (type "mc"), ${recall - mcCount} must be short answer (type "short")
+- Test direct recall: definitions, facts, equations, named examples
+- Model answers should be 1-2 sentences using spec language
+- Keep questions and answers concise
  
-    // Attempt to repair truncated JSON
-    if (!txt.endsWith('}')) {
-      const lastBrace = txt.lastIndexOf('}');
-      if (lastBrace > -1) txt = txt.substring(0, lastBrace + 1) + ']}';
-    }
+Return a JSON array only:
+[{"type":"mc","difficulty":"recall","spec_id":"6.2.2a","topic":"topic","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"B","model_answer":"..."},{"type":"short","difficulty":"recall","spec_id":"6.1.1","topic":"topic","question":"...","model_answer":"..."}]`;
  
-    let parsed;
+    // Call 2: Application + Explanation questions
+    const applyCount = apply + extend;
+    const applyPrompt = `Generate exactly ${applyCount} questions for ${specName} (${tier} tier) — split ${apply} application and ${extend} explanation/analysis.
+Spec points: ${specList}
+- All short answer (type "short")
+- Application: calculations, and short explain questions (difficulty "application")
+- Explanation/analysis: extended explain, evaluate or compare questions (difficulty "explanation")
+- Model answers: 2-4 sentences, use spec language
+- Keep answers concise but complete
+ 
+Return a JSON array only:
+[{"type":"short","difficulty":"application","spec_id":"6.1.2a","topic":"topic","question":"...","model_answer":"..."},{"type":"short","difficulty":"explanation","spec_id":"6.2.7","topic":"topic","question":"...","model_answer":"..."}]`;
+ 
+    let recallQs, applyQs;
     try {
-      parsed = JSON.parse(txt);
+      [recallQs, applyQs] = await Promise.all([
+        callClaude(recallPrompt, 2500),
+        callClaude(applyPrompt, 3000)
+      ]);
     } catch (e) {
-      return res.status(500).json({ error: 'Could not parse AI response — please try again.' });
+      return res.status(500).json({ error: 'Could not generate questions. Please try again. (' + e.message + ')' });
     }
  
-    if (!parsed.questions?.length) return res.status(500).json({ error: 'No questions returned' });
+    const allQuestions = [...recallQs, ...applyQs];
+    if (!allQuestions.length) return res.status(500).json({ error: 'No questions returned' });
  
     // Save to homework table
     const saveResp = await fetch(`${process.env.SUPABASE_URL}/rest/v1/homework`, {
@@ -128,13 +115,13 @@ Return ONLY this JSON structure:
         'apikey': process.env.SUPABASE_PUBLISHABLE_KEY,
         'Prefer': 'return=representation'
       },
-      body: JSON.stringify({ class_id, questions: parsed.questions, tier })
+      body: JSON.stringify({ class_id, questions: allQuestions, tier })
     });
  
     const saved = await saveResp.json();
     const homework_id = Array.isArray(saved) ? saved[0]?.id : saved?.id;
  
-    return res.status(200).json({ questions: parsed.questions, homework_id });
+    return res.status(200).json({ questions: allQuestions, homework_id });
  
   } catch (e) {
     return res.status(500).json({ error: e.message });
@@ -158,3 +145,4 @@ function weightedSample(items, n) {
   }
   return result;
 }
+ 
