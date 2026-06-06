@@ -41,8 +41,7 @@ export default async function handler(req, res) {
     const specList = selected.map(t => t.text).join('\n');
     const specName = spec_label || 'AQA GCSE Combined Science: Trilogy';
  
-    // Helper to call Claude
-    async function callClaude(prompt, maxTokens = 3000) {
+    async function callClaude(systemMsg, userMsg) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -52,59 +51,66 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: maxTokens,
-          system: `You are an expert teacher for ${specName}. Return ONLY valid JSON arrays — no markdown, no preamble, no extra text.`,
-          messages: [{ role: 'user', content: prompt }]
+          max_tokens: 3000,
+          system: systemMsg,
+          messages: [{ role: 'user', content: userMsg }]
         })
       });
-      if (!r.ok) throw new Error(`API error ${r.status}`);
+      if (!r.ok) {
+        const errText = await r.text();
+        throw new Error(`API ${r.status}: ${errText.slice(0, 200)}`);
+      }
       const d = await r.json();
+      // Check stop reason
+      if (d.stop_reason === 'max_tokens') {
+        throw new Error('Response was cut off — too many tokens. Try with fewer spec points.');
+      }
       let txt = d.content.filter(c => c.type === 'text').map(c => c.text).join('');
       txt = txt.replace(/```json|```/g, '').trim();
-      // Repair if truncated
-      if (!txt.endsWith(']')) {
-        const last = txt.lastIndexOf('}');
-        if (last > -1) txt = txt.substring(0, last + 1) + ']';
+      try {
+        return JSON.parse(txt);
+      } catch(e) {
+        throw new Error('JSON parse failed. Raw: ' + txt.slice(0, 300));
       }
-      return JSON.parse(txt);
     }
  
-    // Call 1: Recall questions
+    const sysMsg = `You are an expert ${specName} teacher. Return ONLY a valid JSON array — no markdown fences, no explanation, no text before or after the array. Start your response with [ and end with ].`;
+ 
     const recallPrompt = `Generate exactly ${recall} recall questions for ${specName} (${tier} tier).
-Spec points: ${specList}
-- ${mcCount} must be multiple choice (type "mc"), ${recall - mcCount} must be short answer (type "short")
-- Test direct recall: definitions, facts, equations, named examples
-- Model answers should be 1-2 sentences using spec language
-- Keep questions and answers concise
+Spec points to use: ${specList}
  
-Return a JSON array only:
-[{"type":"mc","difficulty":"recall","spec_id":"6.2.2a","topic":"topic","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"B","model_answer":"..."},{"type":"short","difficulty":"recall","spec_id":"6.1.1","topic":"topic","question":"...","model_answer":"..."}]`;
+Requirements:
+- ${mcCount} multiple choice (type "mc"), ${recall - mcCount} short answer (type "short")  
+- Test direct recall: definitions, facts, equations only
+- Keep model answers to 1 sentence maximum
+- difficulty field must be "recall"
  
-    // Call 2: Application + Explanation questions
-    const applyCount = apply + extend;
-    const applyPrompt = `Generate exactly ${applyCount} questions for ${specName} (${tier} tier) — split ${apply} application and ${extend} explanation/analysis.
-Spec points: ${specList}
+JSON array format (return ONLY the array, nothing else):
+[{"type":"mc","difficulty":"recall","spec_id":"6.2.2a","topic":"Resistance","question":"What is the unit of resistance?","options":["A) Volt","B) Ampere","C) Ohm","D) Watt"],"answer":"C","model_answer":"The unit of resistance is the ohm (Ω)."},{"type":"short","difficulty":"recall","spec_id":"6.1.1","topic":"Energy stores","question":"State two examples of energy stores.","model_answer":"Kinetic energy store and gravitational potential energy store."}]`;
+ 
+    const applyExtendPrompt = `Generate exactly ${apply + extend} questions for ${specName} (${tier} tier).
+Spec points to use: ${specList}
+ 
+Requirements:
+- ${apply} application questions (difficulty "application"): calculations or short explanations, 1-2 sentence answers
+- ${extend} explanation questions (difficulty "explanation"): extended explain/evaluate, 2-3 sentence answers
 - All short answer (type "short")
-- Application: calculations, and short explain questions (difficulty "application")
-- Explanation/analysis: extended explain, evaluate or compare questions (difficulty "explanation")
-- Model answers: 2-4 sentences, use spec language
-- Keep answers concise but complete
  
-Return a JSON array only:
-[{"type":"short","difficulty":"application","spec_id":"6.1.2a","topic":"topic","question":"...","model_answer":"..."},{"type":"short","difficulty":"explanation","spec_id":"6.2.7","topic":"topic","question":"...","model_answer":"..."}]`;
+JSON array format (return ONLY the array, nothing else):
+[{"type":"short","difficulty":"application","spec_id":"6.1.2a","topic":"Kinetic energy","question":"Calculate the kinetic energy of a 2 kg object moving at 3 m/s.","model_answer":"Ek = ½mv² = ½ × 2 × 3² = 9 J."},{"type":"short","difficulty":"explanation","spec_id":"6.2.7","topic":"National Grid","question":"Explain why the National Grid uses a high voltage for transmission.","model_answer":"A high voltage means a low current flows. A lower current reduces energy dissipated in the cables as heat, making transmission more efficient."}]`;
  
     let recallQs, applyQs;
     try {
       [recallQs, applyQs] = await Promise.all([
-        callClaude(recallPrompt, 2500),
-        callClaude(applyPrompt, 3000)
+        callClaude(sysMsg, recallPrompt),
+        callClaude(sysMsg, applyExtendPrompt)
       ]);
     } catch (e) {
-      return res.status(500).json({ error: 'Could not generate questions. Please try again. (' + e.message + ')' });
+      return res.status(500).json({ error: e.message });
     }
  
-    const allQuestions = [...recallQs, ...applyQs];
-    if (!allQuestions.length) return res.status(500).json({ error: 'No questions returned' });
+    const allQuestions = [...(Array.isArray(recallQs) ? recallQs : []), ...(Array.isArray(applyQs) ? applyQs : [])];
+    if (!allQuestions.length) return res.status(500).json({ error: 'No questions generated. Please try again.' });
  
     // Save to homework table
     const saveResp = await fetch(`${process.env.SUPABASE_URL}/rest/v1/homework`, {
@@ -145,4 +151,3 @@ function weightedSample(items, n) {
   }
   return result;
 }
- 
