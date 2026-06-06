@@ -9,15 +9,11 @@
   },
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
       "source": "/homework/:id",
       "destination": "/homework.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/(?!api/).*",
       "destination": "/index.html"
     }
   ]
