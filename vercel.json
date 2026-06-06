@@ -1,8 +1,13 @@
+cel · JSON
 {
   "rewrites": [
     {
       "source": "/homework/:id",
       "destination": "/homework.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
     },
     {
       "source": "/(.*)",
