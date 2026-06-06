@@ -1,0 +1,136 @@
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+ 
+  try {
+    const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
+    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+ 
+    const userResp = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'apikey': process.env.SUPABASE_PUBLISHABLE_KEY }
+    });
+    if (!userResp.ok) return res.status(401).json({ error: 'Invalid session' });
+    const userData = await userResp.json();
+    if (!userData.id) return res.status(401).json({ error: 'Could not verify user' });
+ 
+    const { topics, tier, spec_label, class_id } = req.body;
+    if (!topics || !topics.length) return res.status(400).json({ error: 'No topics provided' });
+ 
+    // Spaced repetition weighting
+    const now = Date.now();
+    const DAY = 86400000;
+ 
+    const weighted = topics.map(t => {
+      const taught = t.taught_date ? new Date(t.taught_date).getTime() : now;
+      const daysAgo = Math.max(1, (now - taught) / DAY);
+ 
+      // Base weight: older topics get higher weight (log scale so it doesn't go crazy)
+      let weight = Math.log(daysAgo + 1);
+ 
+      // Boost topics below 60% performance
+      if (t.avg_pct !== null && t.avg_pct !== undefined && t.avg_pct < 60) {
+        weight *= 1.8;
+      }
+ 
+      // Reduce weight for very recently taught topics (< 3 days)
+      if (daysAgo < 3) weight *= 0.3;
+ 
+      return { ...t, weight };
+    });
+ 
+    // Scale question count based on number of topics (min 4, max 10)
+    const total = Math.min(10, Math.max(4, Math.floor(topics.length * 0.4)));
+    const mc = Math.round(total * 0.3); // ~30% MC
+    const short = total - mc;
+ 
+    // Select topics weighted by score - pick `total` topics
+    const selected = weightedSample(weighted, total);
+    const specList = selected.map(t => t.text).join('\n');
+ 
+    const specName = spec_label || 'AQA GCSE Combined Science: Trilogy';
+ 
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2500,
+        system: `You are an expert teacher and examiner for ${specName}. You write precise retrieval practice questions for homework. Questions should be clear enough for students to attempt independently without a teacher present. Model answers must use specification language exactly. Return ONLY valid JSON with no markdown fences, no preamble, no commentary.`,
+        messages: [{
+          role: 'user',
+          content: `Generate exactly ${total} homework retrieval practice questions for ${specName} (${tier} tier).
+ 
+The questions must be drawn from ONLY these specific specification points (selected using spaced repetition — prioritise these):
+${specList}
+ 
+Rules:
+- ${mc} question(s) must be multiple choice (type: "mc"); ${short} must be short answer (type: "short")
+- Questions must be clear and self-contained — students will answer independently at home
+- Mix simple recall with conceptual questions
+- Model answers must use exact specification language
+- Each question must include the spec point ID
+ 
+Return this exact JSON:
+{"questions":[{"type":"mc","spec_id":"6.4.2a","topic":"short topic","question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"A","model_answer":"..."},{"type":"short","spec_id":"4.1.3b","topic":"short topic","question":"...","model_answer":"..."}]}`
+        }]
+      })
+    });
+ 
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return res.status(500).json({ error: err.error?.message || `API error ${response.status}` });
+    }
+ 
+    const data = await response.json();
+    let txt = data.content.filter(c => c.type === 'text').map(c => c.text).join('');
+    txt = txt.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(txt);
+    if (!parsed.questions?.length) return res.status(500).json({ error: 'No questions returned' });
+ 
+    // Save to homework table
+    const saveResp = await fetch(`${process.env.SUPABASE_URL}/rest/v1/homework`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': process.env.SUPABASE_PUBLISHABLE_KEY,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ class_id, questions: parsed.questions, tier })
+    });
+ 
+    const saved = await saveResp.json();
+    const homework_id = Array.isArray(saved) ? saved[0]?.id : saved?.id;
+ 
+    return res.status(200).json({ questions: parsed.questions, homework_id });
+ 
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+}
+ 
+function weightedSample(items, n) {
+  const result = [];
+  const pool = [...items];
+  for (let i = 0; i < Math.min(n, pool.length); i++) {
+    const totalWeight = pool.reduce((s, x) => s + x.weight, 0);
+    let rand = Math.random() * totalWeight;
+    for (let j = 0; j < pool.length; j++) {
+      rand -= pool[j].weight;
+      if (rand <= 0) {
+        result.push(pool[j]);
+        pool.splice(j, 1);
+        break;
+      }
+    }
+  }
+  return result;
+}
