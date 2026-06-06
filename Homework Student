@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Homework</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a;padding:1.5rem}
+.app{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.subtitle{font-size:13px;color:#888;margin-bottom:1.5rem}
+.q-block{border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:12px}
+.q-num{font-size:11px;color:#888;margin-bottom:4px}
+.q-text{font-size:15px;font-weight:500;line-height:1.5;margin-bottom:10px}
+.mc-options{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.mc-opt{font-size:14px;padding:8px 12px;border-radius:8px;background:#f5f5f5;cursor:pointer;border:2px solid transparent;line-height:1.4;text-align:left}
+.mc-opt:hover{border-color:#ccc}
+.mc-opt.selected{border-color:#4F46E5;background:#f0f0ff}
+.ans-input{width:100%;min-height:80px;font-size:14px;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-family:inherit;resize:vertical}
+.btn{height:40px;padding:0 18px;font-size:14px;border:1px solid #ccc;border-radius:8px;background:transparent;color:#1a1a1a;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-primary:hover{opacity:.85}
+.err{font-size:13px;color:#A32D2D;padding:8px 10px;background:#FCEBEB;border-radius:8px}
+.success{font-size:13px;color:#3B6D11;padding:8px 10px;background:#EAF3DE;border-radius:8px}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#f0f0f0;color:#666}
+.name-row{display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.name-row input{flex:1;height:36px;font-size:14px;padding:0 10px;border:1px solid #ccc;border-radius:8px;min-width:150px}
+.logo{font-size:18px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px}
+.logo span{color:#4F46E5}
+</style>
+</head>
+<body>
+<div class="app">
+  <div>
+    <div class="logo">Retri<span>eval</span></div>
+    <div style="font-size:13px;color:#888">Retrieval homework</div>
+  </div>
+  <div class="card" id="main-card">
+    <div id="loading">Loading homework...</div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://paahfebuknbpgggffhxv.supabase.co';
+const SUPA_KEY = 'sb_publishable_BPrQiDZn2iJusAYB3uZFbA_vCwe66qT';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let homework = null;
+let answers = {};
+
+async function init() {
+  // Get homework ID from URL: /homework/UUID
+  const parts = window.location.pathname.split('/');
+  const hwId = parts[parts.length - 1];
+
+  if (!hwId || hwId.length < 10) {
+    document.getElementById('loading').innerHTML = '<div class="err">Invalid homework link.</div>';
+    return;
+  }
+
+  const { data, error } = await sb.from('homework').select('*').eq('id', hwId).single();
+
+  if (error || !data) {
+    document.getElementById('loading').innerHTML = '<div class="err">Homework not found. Please check the link.</div>';
+    return;
+  }
+
+  homework = data;
+  renderHomework();
+}
+
+function renderHomework() {
+  const qs = homework.questions || [];
+  const date = new Date(homework.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
+
+  document.getElementById('main-card').innerHTML = `
+    <h1>Retrieval Homework</h1>
+    <div class="subtitle">${homework.tier || ''} Tier &nbsp;·&nbsp; ${date} &nbsp;·&nbsp; ${qs.length} questions</div>
+    <div class="name-row">
+      <label style="font-size:13px;font-weight:500;white-space:nowrap">Your name:</label>
+      <input type="text" id="student-name" placeholder="First and last name">
+    </div>
+    ${qs.map((q, i) => qHtml(q, i)).join('')}
+    <div style="margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="submitHomework()">&#10003; Submit homework</button>
+      <span id="submit-msg"></span>
+    </div>
+  `;
+}
+
+function qHtml(q, i) {
+  const isMC = q.type === 'mc';
+  return `<div class="q-block">
+    <div class="q-num">Q${i+1} · ${q.topic || ''} <span class="badge">${isMC ? 'Multiple choice' : 'Short answer'}</span></div>
+    <div class="q-text">${q.question}</div>
+    ${isMC
+      ? `<div class="mc-options">${(q.options||[]).map((o,j)=>`<button class="mc-opt" id="mc-${i}-${j}" onclick="selectMC(${i},${j},'${String.fromCharCode(65+j)}')">${o}</button>`).join('')}</div>`
+      : `<textarea class="ans-input" id="ans-${i}" placeholder="Write your answer here..." oninput="answers['${i}']=this.value"></textarea>`
+    }
+  </div>`;
+}
+
+function selectMC(qi, optIdx, letter) {
+  document.querySelectorAll(`[id^="mc-${qi}-"]`).forEach(el => el.classList.remove('selected'));
+  document.getElementById(`mc-${qi}-${optIdx}`).classList.add('selected');
+  answers[qi] = letter;
+}
+
+async function submitHomework() {
+  const name = document.getElementById('student-name').value.trim();
+  const msg = document.getElementById('submit-msg');
+  if (!name) { msg.innerHTML = '<span class="err">Please enter your name.</span>'; return; }
+
+  const qs = homework.questions || [];
+  const answersArr = qs.map((q, i) => ({
+    question: q.question,
+    spec_id: q.spec_id,
+    topic: q.topic,
+    type: q.type,
+    student_answer: answers[i] || '',
+    correct_answer: q.type === 'mc' ? q.answer : null,
+    model_answer: q.model_answer
+  }));
+
+  const { error } = await sb.from('homework_submissions').insert({
+    homework_id: homework.id,
+    student_name: name,
+    answers: answersArr
+  });
+
+  if (error) {
+    msg.innerHTML = '<span class="err">Error submitting. Please try again.</span>';
+    return;
+  }
+
+  // Show results
+  document.getElementById('main-card').innerHTML = `
+    <h1>&#10003; Homework submitted!</h1>
+    <div class="subtitle">Thanks ${name}. Here are the model answers.</div>
+    ${qs.map((q, i) => {
+      const sa = answersArr[i].student_answer;
+      const isCorrect = q.type === 'mc' ? sa === q.answer : null;
+      return `<div class="q-block">
+        <div class="q-num">Q${i+1} · ${q.topic||''}</div>
+        <div class="q-text">${q.question}</div>
+        ${q.type==='mc'?`<div style="font-size:13px;margin-bottom:6px">Your answer: <strong>${sa||'—'}</strong> ${isCorrect===true?'✓':'✗'}</div>`
+        :`<div style="font-size:13px;margin-bottom:6px;color:#666">Your answer: ${sa||'—'}</div>`}
+        <div style="font-size:13px;background:#EAF3DE;padding:8px 10px;border-radius:6px;color:#3B6D11">
+          <strong>Model answer:</strong> ${q.model_answer}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
