@@ -1,7 +1,24 @@
 {
+  "functions": {
+    "api/homework.js": {
+      "maxDuration": 60
+    },
+    "api/generate.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/homework/:id", "destination": "/homework.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/homework/:id",
+      "destination": "/homework.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
