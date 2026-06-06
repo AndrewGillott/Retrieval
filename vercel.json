@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/homework.js": {
+    "api/Homework.js": {
       "maxDuration": 60
     },
     "api/generate.js": {
