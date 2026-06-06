@@ -19,7 +19,8 @@ export default async function handler(req, res) {
     const userData = await userResp.json();
     if (!userData.id) return res.status(401).json({ error: 'Could not verify user.' });
  
-    const { topics, tier, total, mc, flagged, class_id } = req.body;
+    const { topics, tier, total, mc, flagged, class_id, spec_label } = req.body;
+    const specName = spec_label || 'AQA GCSE Combined Science: Trilogy';
     if (!topics || !topics.length) return res.status(400).json({ error: 'No topics provided' });
  
     let flagCtx = '';
@@ -40,10 +41,10 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2500,
-        system: `You are an expert AQA GCSE Combined Science: Trilogy teacher and examiner. You write precise retrieval practice questions that test exactly what the AQA specification states. You never go beyond the specification. Model answers use AQA specification language and definitions exactly. Return ONLY valid JSON with no markdown fences, no preamble, no commentary.`,
+        system: `You are an expert teacher and examiner for ${specName}. You write precise retrieval practice questions that test exactly what the specification states. You never go beyond the specification. Model answers use specification language and definitions exactly. Return ONLY valid JSON with no markdown fences, no preamble, no commentary.`,
         messages: [{
           role: 'user',
-          content: `Generate exactly ${total} retrieval practice questions for AQA GCSE Combined Science: Trilogy (${tier} tier).
+          content: `Generate exactly ${total} retrieval practice questions for ${specName} (${tier} tier).
  
 The questions must be drawn from ONLY these specific AQA specification points:
 ${specList}
