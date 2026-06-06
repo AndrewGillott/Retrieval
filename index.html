@@ -143,6 +143,7 @@ input[type=search]{margin-bottom:8px}
         <button class="tab" id="tb-stats" onclick="showTab('stats')">Class stats</button>
         <button class="tab" id="tb-review" onclick="showTab('review')">Needs review</button>
         <button class="tab" id="tb-history" onclick="showTab('history')">History</button>
+      <button class="tab" id="tb-homework" onclick="showTab('homework')">Homework</button>
       </div>
 
       <div id="pane-build">
@@ -188,6 +189,7 @@ input[type=search]{margin-bottom:8px}
       <div id="pane-stats" style="display:none"><div id="stats-body"><span class="empty">Select a class to see stats.</span></div></div>
       <div id="pane-review" style="display:none"><div id="rev-body"><span class="empty">No questions flagged yet.</span></div></div>
       <div id="pane-history" style="display:none"><div id="hist-body"><span class="empty">Select a class to see history.</span></div></div>
+      <div id="pane-homework" style="display:none"><div id="hw-body"><span class="empty">Select a class to generate homework.</span></div></div>
     </div>
     <div id="quiz-out"></div>
   </div>
@@ -973,13 +975,14 @@ function renderHist(){
     +'<div style="font-weight:500">'+(r.tier||'')+' tier</div></div>').join('');
 }
 function showTab(t){
-  ['build','stats','review','history'].forEach(x=>{
+  ['build','stats','review','history','homework'].forEach(x=>{
     document.getElementById('pane-'+x).style.display=x===t?'block':'none';
     document.getElementById('tb-'+x).classList.toggle('on',x===t);
   });
   if(t==='stats')renderStats();
   if(t==='review')renderRev();
   if(t==='history')renderHist();
+  if(t==='homework')renderHomework();
 }
 
 async function generate(){
@@ -1228,6 +1231,187 @@ async function profileAddClass(){
   renderClsSel();renderProfileClasses();
   document.getElementById('profile-class-msg').innerHTML='<div class="success">Class added!</div>';
   setTimeout(()=>document.getElementById('profile-class-msg').innerHTML='',2000);
+}
+
+// ── Homework ──────────────────────────────────────────────────────
+async function renderHomework(){
+  const el=document.getElementById('hw-body');
+  if(!curClass){el.innerHTML='<span class="empty">Select a class first.</span>';return;}
+
+  // Load existing homework for this class
+  const {data:hwList,error}=await sb.from('homework')
+    .select('*').eq('class_id',curClass.id).order('created_at',{ascending:false});
+
+  const topics=curClass.taught_topics||[];
+  const topicCount=topics.length;
+
+  // Calculate what homework would look like
+  const total=Math.min(10,Math.max(4,Math.floor(topicCount*0.4)));
+
+  let html=`<div style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:500;margin-bottom:4px">Homework generator</div>
+    <div style="font-size:13px;color:#888;margin-bottom:12px">
+      ${topicCount} spec points covered · System will generate ~${total} questions using spaced repetition
+    </div>`;
+
+  if(topicCount<3){
+    html+=`<div class="err" style="margin-bottom:12px">Add at least 3 spec points before generating homework.</div>`;
+  } else {
+    html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <button class="btn btn-primary" id="hw-gen-btn" onclick="generateHomework()">&#9654; Generate homework</button>
+    </div>`;
+  }
+  html+='</div>';
+
+  // Show past homework
+  if(error){html+='<div class="err">Error loading homework: '+error.message+'</div>';}
+  else if(!hwList||!hwList.length){
+    html+='<span class="empty">No homework generated yet for this class.</span>';
+  } else {
+    html+='<div class="slabel" style="margin-bottom:10px">Past homework</div>';
+    html+=hwList.map(hw=>`
+      <div class="q-block" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:#888;margin-bottom:3px">${new Date(hw.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} · ${hw.tier||''} tier · ${(hw.questions||[]).length} questions</div>
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+              <button class="btn btn-sm btn-copy" onclick="printHomework('${hw.id}')">&#128438; Print sheet</button>
+              <button class="btn btn-sm" onclick="copyStudentLink('${hw.id}')">&#128279; Copy student link</button>
+              <button class="btn btn-sm" onclick="viewMarkScheme('${hw.id}')">&#128196; Mark scheme</button>
+            </div>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  el.innerHTML=html;
+
+  // Store hw list for later use
+  window._hwList=hwList||[];
+}
+
+async function generateHomework(){
+  if(!curClass){alert('Select a class first.');return;}
+  const topics=curClass.taught_topics||[];
+  if(topics.length<3){alert('Add at least 3 spec points first.');return;}
+
+  const btn=document.getElementById('hw-gen-btn');
+  if(btn){btn.innerHTML='<span class="spinner"></span> Generating…';btn.disabled=true;}
+
+  // Load performance data to inform weighting
+  const {data:results}=await sb.from('question_results').select('spec_id,pct_correct').eq('class_id',curClass.id);
+
+  // Build avg pct per spec_id
+  const perfMap={};
+  if(results){
+    results.forEach(r=>{
+      if(!perfMap[r.spec_id])perfMap[r.spec_id]={total:0,count:0};
+      perfMap[r.spec_id].total+=r.pct_correct;
+      perfMap[r.spec_id].count++;
+    });
+  }
+
+  const topicObjs=topics.map(t=>({
+    id:t.spec_id,
+    text:t.spec_text,
+    taught_date:t.taught_date,
+    avg_pct:perfMap[t.spec_id]?Math.round(perfMap[t.spec_id].total/perfMap[t.spec_id].count):null
+  }));
+
+  try{
+    const resp=await fetch('/api/homework',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({
+        topics:topicObjs,
+        tier:curClass.tier||'Higher',
+        spec_label:SPECS[curSpec]?.label||'AQA GCSE Combined Science: Trilogy',
+        class_id:curClass.id
+      })
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||'HTTP '+resp.status);}
+    const data=await resp.json();
+    window._currentHw={id:data.homework_id,questions:data.questions};
+    alert('Homework generated! Use the buttons below to print or share with students.');
+    renderHomework();
+  }catch(e){
+    alert('Error generating homework: '+e.message);
+    if(btn){btn.innerHTML='&#9654; Generate homework';btn.disabled=false;}
+  }
+}
+
+function getHw(id){
+  return (window._hwList||[]).find(h=>h.id===id)||null;
+}
+
+function printHomework(id){
+  const hw=getHw(id);
+  if(!hw||!hw.questions){alert('Could not find homework.');return;}
+  const date=new Date(hw.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const qs=hw.questions;
+
+  const qHtml=qs.map((q,i)=>{
+    const isMC=q.type==='mc';
+    return `<div style="margin-bottom:24px;page-break-inside:avoid">
+      <div style="font-size:11px;color:#666;margin-bottom:4px">Q${i+1} · ${q.topic||''} · ${isMC?'Circle the correct answer':'Write your answer below'}</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:10px">${q.question}</div>
+      ${isMC?`<div style="display:flex;gap:16px;flex-wrap:wrap">${(q.options||[]).map(o=>`<div style="border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:13px">${o}</div>`).join('')}</div>`
+      :`<div style="border:1px solid #ccc;border-radius:6px;min-height:60px;margin-top:4px;padding:8px"></div>`}
+    </div>`;
+  }).join('');
+
+  const maHtml=qs.map((q,i)=>`<div style="margin-bottom:12px;font-size:13px">
+    <strong>Q${i+1}.</strong> ${q.type==='mc'?'Answer: '+q.answer+' — ':''} ${q.model_answer}
+  </div>`).join('');
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Homework — ${curClass.name}</title>
+  <style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;color:#1a1a1a;padding:0 20px}
+  h1{font-size:18px;margin-bottom:4px}
+  .subtitle{font-size:13px;color:#666;margin-bottom:24px}
+  .divider{border:none;border-top:1px solid #ccc;margin:24px 0}
+  @media print{.no-print{display:none}}</style></head>
+  <body>
+  <div class="no-print" style="background:#f0f7ff;padding:12px;border-radius:8px;margin-bottom:20px;font-size:13px">
+    &#128438; <strong>Print tip:</strong> Use Ctrl+P / Cmd+P. The mark scheme is on a separate page.
+    <button onclick="window.print()" style="margin-left:12px;padding:4px 12px;cursor:pointer">Print now</button>
+  </div>
+  <h1>Retrieval Homework — ${curClass.name}</h1>
+  <div class="subtitle">${hw.tier||''} Tier &nbsp;·&nbsp; ${date} &nbsp;·&nbsp; ${qs.length} questions</div>
+  <div style="margin-bottom:8px;font-size:13px;color:#666">Name: ___________________________ &nbsp;&nbsp; Date: _______________</div>
+  <hr class="divider">
+  ${qHtml}
+  <div style="page-break-before:always"></div>
+  <h1>Mark Scheme — ${curClass.name}</h1>
+  <div class="subtitle">${hw.tier||''} Tier &nbsp;·&nbsp; ${date}</div>
+  <hr class="divider">
+  ${maHtml}
+  </body></html>`);
+  win.document.close();
+}
+
+function copyStudentLink(id){
+  const url=window.location.origin+'/homework/'+id;
+  navigator.clipboard.writeText(url)
+    .then(()=>alert('Student link copied!\n\nShare this link with your class:\n'+url))
+    .catch(()=>alert('Link: '+window.location.origin+'/homework/'+id));
+}
+
+function viewMarkScheme(id){
+  const hw=getHw(id);
+  if(!hw||!hw.questions){alert('Could not find homework.');return;}
+  const win=window.open('','_blank');
+  const date=new Date(hw.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  win.document.write(`<!DOCTYPE html><html><head><title>Mark Scheme</title>
+  <style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;color:#1a1a1a;padding:0 20px}
+  h1{font-size:18px;margin-bottom:4px}.subtitle{font-size:13px;color:#666;margin-bottom:24px}
+  .q{margin-bottom:14px;font-size:13px;padding:10px 12px;background:#f9f9f9;border-radius:8px;border-left:3px solid #3B6D11}</style></head>
+  <body>
+  <h1>Mark Scheme — ${curClass.name}</h1>
+  <div class="subtitle">${hw.tier||''} Tier &nbsp;·&nbsp; ${date}</div>
+  ${hw.questions.map((q,i)=>`<div class="q"><strong>Q${i+1}. ${q.topic||''}</strong><br>${q.type==='mc'?'<em>Answer: '+q.answer+'</em><br>':''}${q.model_answer}</div>`).join('')}
+  </body></html>`);
+  win.document.close();
 }
 
 init();
