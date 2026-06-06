@@ -1,19 +1,11 @@
 {
-  "functions": {
-    "api/Homework.js": {
-      "maxDuration": 60
-    },
-    "api/generate.js": {
-      "maxDuration": 60
-    }
-  },
   "rewrites": [
     {
       "source": "/homework/:id",
       "destination": "/homework.html"
     },
     {
-      "source": "/(?!api/).*",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
