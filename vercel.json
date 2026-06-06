@@ -1,16 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/homework/:id",
-      "destination": "/homework.html"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/homework/:id", "destination": "/homework.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
