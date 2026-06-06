@@ -1246,12 +1246,15 @@ async function renderHomework(){
   const topicCount=topics.length;
 
   // Calculate what homework would look like
-  const total=Math.min(10,Math.max(4,Math.floor(topicCount*0.4)));
+  const total=Math.min(15,Math.max(10,Math.floor(topicCount*0.5)));
 
   let html=`<div style="margin-bottom:16px">
     <div style="font-size:15px;font-weight:500;margin-bottom:4px">Homework generator</div>
     <div style="font-size:13px;color:#888;margin-bottom:12px">
-      ${topicCount} spec points covered · System will generate ~${total} questions using spaced repetition
+      ${topicCount} spec points covered · Will generate ${total} questions in 3 difficulty bands:<br>
+      <span style="font-size:12px">&#x2022; <strong>Section 1 — Recall</strong> (easy): definitions, facts, equations &nbsp;
+      &#x2022; <strong>Section 2 — Application</strong> (medium): calculations, explanations &nbsp;
+      &#x2022; <strong>Section 3 — Analysis</strong> (hard): extended answers, evaluation</span>
     </div>`;
 
   if(topicCount<3){
@@ -1350,19 +1353,37 @@ function printHomework(id){
   const date=new Date(hw.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const qs=hw.questions;
 
-  const qHtml=qs.map((q,i)=>{
-    const isMC=q.type==='mc';
-    return `<div style="margin-bottom:24px;page-break-inside:avoid">
-      <div style="font-size:11px;color:#666;margin-bottom:4px">Q${i+1} · ${q.topic||''} · ${isMC?'Circle the correct answer':'Write your answer below'}</div>
-      <div style="font-size:15px;font-weight:500;margin-bottom:10px">${q.question}</div>
-      ${isMC?`<div style="display:flex;gap:16px;flex-wrap:wrap">${(q.options||[]).map(o=>`<div style="border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:13px">${o}</div>`).join('')}</div>`
-      :`<div style="border:1px solid #ccc;border-radius:6px;min-height:60px;margin-top:4px;padding:8px"></div>`}
-    </div>`;
+  const sections={recall:[],application:[],explanation:[]};
+  qs.forEach((q,i)=>{ const d=q.difficulty||'recall'; sections[d]=sections[d]||[]; sections[d].push({q,i}); });
+  const sectionLabels={recall:'Section 1 — Recall',application:'Section 2 — Application',explanation:'Section 3 — Analysis & Explanation'};
+  const sectionDesc={recall:'Answer from memory — facts, definitions and equations.',application:'Apply your knowledge — calculations and short explanations.',explanation:'Extended answers — explain, evaluate and analyse.'};
+  let qNum=1;
+  const qHtml=Object.entries(sections).filter(([,items])=>items.length).map(([key,items])=>{
+    const header=`<div style="margin:20px 0 10px;padding:8px 12px;background:#f0f0f0;border-radius:6px;page-break-inside:avoid">
+      <div style="font-size:13px;font-weight:600">${sectionLabels[key]}</div>
+      <div style="font-size:11px;color:#666">${sectionDesc[key]}</div></div>`;
+    const qs_html=items.map(({q,i})=>{
+      const isMC=q.type==='mc';
+      const n=qNum++;
+      const ansHeight=key==='explanation'?'100px':key==='application'?'70px':'50px';
+      return `<div style="margin-bottom:20px;page-break-inside:avoid">
+        <div style="font-size:11px;color:#666;margin-bottom:4px">Q${n} · ${q.topic||''} · ${isMC?'Circle the correct answer':'Write your answer below'}</div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:10px">${q.question}</div>
+        ${isMC?`<div style="display:flex;gap:12px;flex-wrap:wrap">${(q.options||[]).map(o=>`<div style="border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:13px">${o}</div>`).join('')}</div>`
+        :`<div style="border:1px solid #ccc;border-radius:6px;min-height:${ansHeight};margin-top:4px;padding:8px"></div>`}
+      </div>`;
+    }).join('');
+    return header+qs_html;
   }).join('');
 
-  const maHtml=qs.map((q,i)=>`<div style="margin-bottom:12px;font-size:13px">
-    <strong>Q${i+1}.</strong> ${q.type==='mc'?'Answer: '+q.answer+' — ':''} ${q.model_answer}
-  </div>`).join('');
+  let msNum=1;
+  const maHtml=qs.map((q,i)=>{
+    const diffLabel={recall:'Recall',application:'Application',explanation:'Analysis'}[q.difficulty]||'';
+    return `<div style="margin-bottom:10px;font-size:13px;padding:8px 10px;background:#f9f9f9;border-radius:6px;border-left:3px solid ${q.difficulty==='explanation'?'#854F0B':q.difficulty==='application'?'#185FA5':'#3B6D11'}">
+      <strong>Q${msNum++}. ${q.topic||''}</strong>${diffLabel?` <span style="font-size:11px;color:#888">[${diffLabel}]</span>`:''}<br>
+      ${q.type==='mc'?`<em>Answer: ${q.answer}</em><br>`:''}${q.model_answer}
+    </div>`;
+  }).join('');
 
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Homework — ${curClass.name}</title>
